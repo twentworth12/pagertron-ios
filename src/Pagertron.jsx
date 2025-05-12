@@ -71,6 +71,9 @@ function PagerTron() {
     velocityX: 0,
     velocityY: 0
   });
+
+  // Track close encounters for visual hitbox indicators
+  const [closeEncounters, setCloseEncounters] = useState([]);
   const [missiles, setMissiles] = useState([]);
   const [gameOver, setGameOver] = useState(false);
   const [level, setLevel] = useState(1);
@@ -184,12 +187,27 @@ function PagerTron() {
           })
           .filter(pager => {
             const hitByMissile = updatedMissiles.some((missile, missileIndex) => {
+              // Get the centers of the missile and pager
+              const missileCenterX = missile.x;  // Missile coordinates already represent center
+              const missileCenterY = missile.y;
+              const pagerCenterX = pager.x + PAGER_SIZE / 2;
+              const pagerCenterY = pager.y + PAGER_SIZE / 2;
+
+              // Calculate distance between centers
               const distance = Math.sqrt(
-                Math.pow(missile.x - pager.x, 2) +
-                Math.pow(missile.y - pager.y, 2)
+                Math.pow(missileCenterX - pagerCenterX, 2) +
+                Math.pow(missileCenterY - pagerCenterY, 2)
               );
-              const effectiveMissileSize = konamiActive ? KONAMI_MISSILE_SIZE : MISSILE_SIZE;
-              if (distance < (PAGER_SIZE + effectiveMissileSize) / 2) {
+
+              // Calculate effective collision radius based on actual sprite sizes
+              // Use slightly larger hitbox for missiles to make hitting easier
+              const missileSize = konamiActive ? KONAMI_MISSILE_SIZE : MISSILE_SIZE;
+              const missileRadius = missileSize * 0.6;  // Larger than visual size for easier hits
+              const pagerRadius = PAGER_SIZE * 0.4;     // Same as player collision
+              const collisionDistance = missileRadius + pagerRadius;
+
+              // Check if collision occurred
+              if (distance < collisionDistance) {
                 pagersToRemove.push(pager);
                 setMissiles(prev => prev.filter((_, index) => index !== missileIndex));
                 return true;
@@ -204,14 +222,55 @@ function PagerTron() {
         }
 
         const playerHit = updatedPagers.some(pager => {
+          // Get the centers of the player and pager
+          const playerCenterX = player.x + PLAYER_SIZE / 2;
+          const playerCenterY = player.y + PLAYER_SIZE / 2;
+          const pagerCenterX = pager.x + PAGER_SIZE / 2;
+          const pagerCenterY = pager.y + PAGER_SIZE / 2;
+
+          // Calculate distance between centers
           const distance = Math.sqrt(
-            Math.pow(player.x + PLAYER_SIZE / 2 - (pager.x + PAGER_SIZE / 2), 2) +
-            Math.pow(player.y + PLAYER_SIZE / 2 - (pager.y + PAGER_SIZE / 2), 2)
+            Math.pow(playerCenterX - pagerCenterX, 2) +
+            Math.pow(playerCenterY - pagerCenterY, 2)
           );
-          if (distance < 100) {
-            console.log(`Distance to pager at (${pager.x}, ${pager.y}): ${distance}`);
+
+          // Calculate effective collision radius based on actual sprite sizes
+          // Use 60% of the actual size for more forgiving hit detection
+          const playerRadius = PLAYER_SIZE * 0.35;  // Smaller than visual size
+          const pagerRadius = PAGER_SIZE * 0.4;    // Smaller than visual size
+          const collisionDistance = playerRadius + pagerRadius;
+
+          // Track close encounters for visual indicators
+          const isClose = distance < collisionDistance * 1.8;
+          const isCollision = distance < collisionDistance;
+
+          // Update close encounters state
+          if (isClose) {
+            // Keep track of this pager as a close encounter
+            setCloseEncounters(prev => {
+              // Add this pager if not already tracked
+              const exists = prev.some(enc => enc.pagerId === pager.id);
+              if (!exists) {
+                return [...prev, {
+                  pagerId: pager.id,
+                  distance: distance,
+                  threshold: collisionDistance,
+                  danger: distance / collisionDistance // 0-1 value, lower means closer to collision
+                }];
+              }
+              // Update existing entry
+              return prev.map(enc =>
+                enc.pagerId === pager.id
+                  ? { ...enc, distance, threshold: collisionDistance, danger: distance / collisionDistance }
+                  : enc
+              );
+            });
+          } else {
+            // Remove this pager from close encounters if it exists
+            setCloseEncounters(prev => prev.filter(enc => enc.pagerId !== pager.id));
           }
-          return distance < COLLISION_RADIUS;
+
+          return isCollision;
         });
 
         if (playerHit && !gameOver) {
@@ -225,6 +284,8 @@ function PagerTron() {
             setLevel(prevLevel => prevLevel + 1);
             setPagers(generateRandomPagers(7));
             setMissiles([]);
+            // Reset close encounters for the new level
+            setCloseEncounters([]);
             // Reset player position to center of screen with upward direction and no velocity
             setPlayer({
               x: 640,
@@ -386,7 +447,10 @@ function PagerTron() {
 
       // Force clear all pagers immediately to ensure clean wipe effect
       // We'll still create explosions at their last positions
-      setTimeout(() => setPagers([]), 100);
+      setTimeout(() => {
+        setPagers([]);
+        setCloseEncounters([]); // Clear close encounters during finale
+      }, 100);
 
       const logoCenter = { x: 640, y: 360 };
       const missiles = [];
@@ -601,6 +665,7 @@ function PagerTron() {
     setExplosions([]);
     setKonamiInput([]);
     setThrusterActive(false);
+    setCloseEncounters([]);
   };
 
   // --- Render High Score Modal ---
@@ -1081,6 +1146,21 @@ function PagerTron() {
             animation: "pulse 1s infinite alternate"
           }}
         >
+          {/* Player hitbox visualization when near pagers */}
+          {closeEncounters.length > 0 && (
+            <div style={{
+              position: "absolute",
+              width: `${PLAYER_SIZE * 0.7}px`,
+              height: `${PLAYER_SIZE * 0.7}px`,
+              borderRadius: "50%",
+              backgroundColor: "rgba(255, 255, 255, 0.2)",
+              border: "2px solid rgba(255, 255, 255, 0.5)",
+              boxShadow: "0 0 10px rgba(255, 255, 255, 0.7)",
+              opacity: 0.7,
+              animation: "pulse 0.8s infinite alternate"
+            }} />
+          )}
+
           <div style={{
             fontSize: "40px",
             lineHeight: 1,
@@ -1111,25 +1191,53 @@ function PagerTron() {
       )}
 
       {/* Pagers - only show when game is in progress (not game over or finale) */}
-      {gameStarted && !gameOver && !finaleActive && pagers.map(pager => (
-        <div
-          key={pager.id}
-          className="absolute w-12 h-12"
-          style={{
-            position: "absolute",
-            width: `${PAGER_SIZE}px`,
-            height: `${PAGER_SIZE}px`,
-            fontSize: "40px",
-            left: `${pager.x}px`,
-            top: `${pager.y}px`,
-            opacity: isTransitioning ? 0 : 1,
-            transition: "opacity 0.3s",
-            zIndex: 1
-          }}
-        >
-          📟
-        </div>
-      ))}
+      {gameStarted && !gameOver && !finaleActive && pagers.map(pager => {
+        // Check if this pager is in close encounters
+        const encounter = closeEncounters.find(enc => enc.pagerId === pager.id);
+        const isClose = encounter !== undefined;
+        // Calculate danger level (0-1, where closer to 0 is more dangerous)
+        const dangerLevel = isClose ? encounter.danger : 1;
+        // Color goes from green (safe) to red (danger)
+        const dangerColor = isClose
+          ? `rgba(${Math.min(255, 255 * (2 - 2 * dangerLevel))}, ${Math.min(255, 255 * (2 * dangerLevel))}, 0, ${Math.max(0.1, 0.6 - 0.5 * dangerLevel)})`
+          : 'transparent';
+
+        return (
+          <div
+            key={pager.id}
+            style={{
+              position: "absolute",
+              width: `${PAGER_SIZE}px`,
+              height: `${PAGER_SIZE}px`,
+              fontSize: "40px",
+              left: `${pager.x}px`,
+              top: `${pager.y}px`,
+              opacity: isTransitioning ? 0 : 1,
+              transition: "opacity 0.3s",
+              zIndex: 1
+            }}
+          >
+            {/* Hitbox visualization when close to player */}
+            {isClose && (
+              <div style={{
+                position: "absolute",
+                width: `${PAGER_SIZE * 0.8}px`,
+                height: `${PAGER_SIZE * 0.8}px`,
+                left: `${PAGER_SIZE * 0.1}px`,
+                top: `${PAGER_SIZE * 0.1}px`,
+                borderRadius: "50%",
+                backgroundColor: dangerColor,
+                boxShadow: `0 0 ${10 + 10 * (1 - dangerLevel)}px ${dangerColor}`,
+                opacity: Math.max(0.3, 1 - dangerLevel),
+                transition: "all 0.2s ease",
+                animation: dangerLevel < 0.5 ? "pulse 0.5s infinite alternate" : "none",
+                zIndex: -1
+              }} />
+            )}
+            📟
+          </div>
+        );
+      })}
 
       {/* Missiles - 80s arcade style projectiles - only show during normal gameplay */}
       {gameStarted && !finaleActive && missiles.map((missile, index) => {
