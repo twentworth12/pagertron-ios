@@ -428,16 +428,13 @@ function PagerTron() {
   // Music toggle is now only available through the button click
   // Removed M key handling to improve performance
 
-  // When the player dies, trigger the finale effect immediately
+  // When the player dies, trigger the finale effect immediately with no delay
   useEffect(() => {
     if (gameOver) {
-      // Use a shorter delay (only 1 second) before starting the finale
-      const timer = setTimeout(() => {
-        // Clear regular missiles when finale begins
-        setMissiles([]);
-        setFinaleActive(true);
-      }, 1000);
-      return () => clearTimeout(timer);
+      // Start finale immediately without delay
+      setMissiles([]);
+      setFinaleActive(true);
+      // No timeout needed anymore
     }
   }, [gameOver]);
 
@@ -449,10 +446,8 @@ function PagerTron() {
 
       // Force clear all pagers immediately to ensure clean wipe effect
       // We'll still create explosions at their last positions
-      setTimeout(() => {
-        setPagers([]);
-        setCloseEncounters([]); // Clear close encounters during finale
-      }, 100);
+      setPagers([]);
+      setCloseEncounters([]); // Clear close encounters during finale
 
       const logoCenter = { x: 640, y: 360 };
       const missiles = [];
@@ -499,7 +494,7 @@ function PagerTron() {
     }
   }, [finaleActive]);
 
-  // Finale: Update final missiles and clear the screen with explosive effects
+  // Finale: Update final missiles and create explosions as they go off-screen
   useEffect(() => {
     if (!finaleActive) return;
 
@@ -555,37 +550,7 @@ function PagerTron() {
         );
       });
 
-      // Clear all pagers with dramatic explosions
-      setPagers(prevPagers => {
-        // If we have missiles in motion and pagers remaining
-        if (finalMissiles.length > 0 && prevPagers.length > 0) {
-          // Create explosions for pagers
-          const newPagerExplosions = [];
-
-          // Simplified pager explosions for better performance
-          prevPagers.slice(0, 5).forEach(pager => {
-            // Just one explosion per pager
-            newPagerExplosions.push({
-              x: pager.x,
-              y: pager.y,
-              size: 80,
-              createdAt: Date.now()
-            });
-          });
-
-          // One single state update instead of multiple
-          if (newPagerExplosions.length > 0) {
-            setExplosions(prev => [...prev, ...newPagerExplosions]);
-          }
-
-          // Destroy all pagers regardless of missile proximity
-          // This ensures the screen is completely cleared during the finale
-          const remainingPagers = [];
-
-          return remainingPagers;
-        }
-        return prevPagers;
-      });
+      // Note: We no longer clear pagers here because they're already cleared when finaleActive is set
 
       // Simpler explosion cleanup for better performance
       setExplosions(prev => {
@@ -1053,35 +1018,7 @@ function PagerTron() {
         </div>
       )}
 
-      {/* Game Over Screen - authentic 80s arcade cabinet style */}
-      {gameOver && !finaleActive && (
-        <div style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          flexDirection: "column",
-          backgroundColor: "rgba(0, 0, 0, 0.7)",
-          zIndex: 2
-        }}>
-          <div style={{
-            fontSize: "64px",
-            fontFamily: "'Press Start 2P', cursive",
-            color: "#ff0000",
-            textShadow: "0 0 15px #ff0000, 0 0 25px #ff0000",
-            animation: "pulse 0.5s infinite alternate",
-            letterSpacing: "2px",
-            transform: "scaleY(1.2)",
-            marginBottom: "20px"
-          }}>
-            GAME OVER
-          </div>
-        </div>
-      )}
+      {/* Removed Game Over Screen to avoid flashing before finale */}
 
       {/* Final Logo and Missile Effect */}
       {finaleActive && (
@@ -1109,14 +1046,27 @@ function PagerTron() {
                 height: `${explosion.size}px`,
                 left: `${explosion.x - explosion.size / 2}px`,
                 top: `${explosion.y - explosion.size / 2}px`,
-                borderRadius: "50%",
-                background: "radial-gradient(circle, #ffff00 0%, #ff8800 40%, transparent 70%)",
-                boxShadow: "0 0 15px #ff00ff",
-                filter: "blur(2px)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
                 opacity: 1 - (Date.now() - explosion.createdAt) / 1000,
                 zIndex: 12
               }}
-            />
+            >
+              <img
+                src={claudeLogo}
+                alt="Claude Logo"
+                style={{
+                  width: `${explosion.size * 0.8}px`,
+                  height: `${explosion.size * 0.8}px`,
+                  filter: "drop-shadow(0 0 15px #ff00ff)",
+                  borderRadius: `${explosion.size * 0.2}px`,
+                  opacity: 0.9,
+                  transform: `scale(${1 + Math.sin(Date.now() / 100) * 0.2})`,
+                  animation: "pulse 0.3s infinite alternate"
+                }}
+              />
+            </div>
           ))}
 
           {/* Render finale missiles */}
@@ -1143,9 +1093,13 @@ function PagerTron() {
                 position: "relative"
               }}>
                 <img
-                  src={anthropicLogo}
-                  alt="Anthropic Logo"
-                  style={{ width: '60px', height: '60px' }}
+                  src={claudeLogo}
+                  alt="Claude Logo"
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '12px'
+                  }}
                 />
                 {/* Add missile trail effect */}
                 <div style={{
