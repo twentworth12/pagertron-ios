@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PagerTron</title>
+    <!-- Preload music files -->
+    <link rel="preload" href="/music/Race.mp3" as="audio" />
+    <link rel="preload" href="/music/Fatality.mp3" as="audio" />
+    <!-- Load audio setup script early -->
+    <script src="/autoplay-setup.js"></script>
+  </head>
+  <body>
+    <!-- Invisible, always-muted auto-playing audio element as a browser hack -->
+    <audio id="silent-audio" src="/music/Race.mp3" autoplay loop muted style="display:none"></audio>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- This script runs after the page loads to help with autoplay -->
+    <script>
+      // Attempt to force audio to play as soon as possible
+      window.addEventListener('DOMContentLoaded', () => {
+        // Create a user interaction simulation
+        const simulateUserGesture = () => {
+          // Create and trigger a click event on document
+          const event = new MouseEvent('click', {
+            view: window,
+            bubbles: true,
+            cancelable: true
+          });
+          document.dispatchEvent(event);
+        };
+
+        // Try multiple times to catch autoplay
+        setTimeout(simulateUserGesture, 100);
+        setTimeout(simulateUserGesture, 500);
+        setTimeout(simulateUserGesture, 1000);
+      });
+    </script>
+  </body>
+</html>

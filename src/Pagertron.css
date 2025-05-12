@@ -1,0 +1,264 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* === 80s ARCADE ANIMATIONS === */
+
+/* Basic pulse for blinking elements */
+@keyframes pulse {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* CRT scan line effect */
+@keyframes scanline {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 100%;
+  }
+}
+
+/* Text scrolling animation */
+@keyframes scrollText {
+  0% {
+    transform: translateX(100%);
+  }
+  0.01% {
+    transform: translateX(99.99%);
+  }
+  100% {
+    transform: translateX(-200%);
+  }
+}
+
+/* Retro text glow effect */
+@keyframes glow {
+  0% {
+    text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #f25533, 0 0 20px #f25533;
+  }
+  100% {
+    text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #f25533, 0 0 40px #f25533;
+  }
+}
+
+/* Rainbow color cycle (Defender/Robotron style) */
+@keyframes rainbow {
+  0% { color: #ff0000; }
+  15% { color: #ff8800; }
+  30% { color: #ffff00; }
+  45% { color: #88ff00; }
+  60% { color: #00ffff; }
+  75% { color: #0088ff; }
+  90% { color: #ff00ff; }
+  100% { color: #ff0088; }
+}
+
+/* Background fireworks for celebration */
+@keyframes fireworks {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+
+/* Button/element pulsing */
+@keyframes pulsate {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Attention-grabbing blink (used for call-to-action elements) */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Pixelated movement (for transitions) */
+@keyframes pixel-shift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 2px); }
+  50% { transform: translate(0, -2px); }
+  75% { transform: translate(2px, 0); }
+  100% { transform: translate(0, 0); }
+}
+
+/* CRT power-on flicker */
+@keyframes crt-flicker {
+  0% { opacity: 0.7; filter: brightness(1); }
+  5% { opacity: 0.9; filter: brightness(1.1); }
+  10% { opacity: 0.7; filter: brightness(0.9); }
+  15% { opacity: 1; filter: brightness(1.1); }
+  20% { opacity: 0.6; filter: brightness(0.8); }
+  25% { opacity: 1; filter: brightness(1); }
+  30% { opacity: 0.8; filter: brightness(1.2); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+
+/* Global CRT effect for the entire game */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.02) 50%,
+    rgba(255,255,255,0) 51%,
+    rgba(255,255,255,0.04) 100%);
+  background-size: 100% 3px;
+  pointer-events: none;
+  z-index: 999;
+  animation: scanline 10s linear infinite;
+  opacity: 0.15;
+}
+
+.high-score-ticker {
+  position: absolute;
+  bottom: 30%;
+  width: 100%;
+  overflow: hidden;
+  height: 30px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-top: 2px solid #ff00ff;
+  border-bottom: 2px solid #00ffff;
+  z-index: 5;
+  box-shadow: 0 0 8px #ff00ff, 0 0 16px #00ffff;
+}
+
+.ticker-content {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  /* Much slower scrolling (4x slower than before) */
+  animation: scrollText 240s linear infinite;
+  /* Ensures the animation starts immediately */
+  animation-delay: 0s;
+  animation-play-state: running;
+  text-shadow: 0 0 5px #fff;
+  letter-spacing: 1px;
+}
+
+.score-highlight {
+  animation: glow 1.5s ease-in-out infinite alternate;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* Insert coin text blinking */
+.insert-coin {
+  animation: blink 1s step-end infinite;
+  color: #ffff00;
+  text-shadow: 0 0 5px #ff8800;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+/* Top Score Celebration Styles */
+.top-score-celebration {
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 15px 10px;
+  border: 3px solid #ffff00;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+}
+
+.top-score-celebration::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    radial-gradient(circle, rgba(255,255,0,0.1) 0%, rgba(255,0,0,0.05) 25%, transparent 70%),
+    linear-gradient(to bottom,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.03) 50%,
+      rgba(255,255,255,0) 51%,
+      rgba(255,255,255,0.06) 100%);
+  background-size: auto, 100% 4px;
+  animation: fireworks 3s ease infinite, scanline 15s linear infinite;
+  z-index: -1;
+}
+
+.top-score-celebration h2 {
+  font-size: 22px;
+  font-weight: bold;
+  text-shadow: 0 0 10px #ff0000, 0 0 20px #ff8800, 0 0 30px #ffff00;
+  margin: 5px 0;
+  animation: rainbow 3s infinite alternate;
+  letter-spacing: 2px;
+  transform: scaleY(1.1);
+}
+
+.top-score-celebration .player-name {
+  font-size: 24px;
+  color: #ffff00;
+  margin: 5px 0;
+  text-shadow: 0 0 10px #ffffff, 0 0 15px #ffffff;
+  letter-spacing: 5px;
+  padding: 3px 0;
+  font-weight: bold;
+  transform: scaleX(1.1);
+}
+
+.top-score-celebration .score {
+  font-size: 20px;
+  color: #88ff88;
+  margin: 3px 0;
+  animation: pulse 1.2s infinite alternate;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.top-score-celebration .scroll-text {
+  position: relative;
+  width: 100%;
+  height: 25px;
+  margin-top: 10px;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.4);
+  border-top: 1px solid #00ffff;
+  border-bottom: 1px solid #ff00ff;
+}
+
+.top-score-celebration .scroll-text div {
+  position: absolute;
+  width: 100%;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 25px;
+  animation: scrollText 8s linear infinite;
+  white-space: nowrap;
+  color: #88ffff;
+  text-shadow: 0 0 5px #00ffff;
+}
+
+/* Swag button - glowing "INSERT COIN" style button */
+.swag-button {
+  display: inline-block;
+  background-color: #0088ff;
+  border: 2px solid white;
+  color: white;
+  padding: 5px 10px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 14px;
+  text-decoration: none;
+  text-align: center;
+  animation: pulsate 1.5s ease-in-out infinite;
+  text-shadow: 1px 1px 0 #0066cc;
+  box-shadow: 0 0 8px rgba(0, 136, 255, 0.7);
+  border-radius: 0;
+  letter-spacing: 1px;
+  font-weight: bold;
+  margin: 5px auto;
+}
