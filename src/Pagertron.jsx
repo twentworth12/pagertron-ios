@@ -4,6 +4,8 @@ import HighScoreModal from './HighScoreModal';
 import HighScoreTicker from './HighScoreTicker';
 // Import GameMusic with a key to force complete remount when game state changes
 import GameMusic from './GameMusic';
+import anthropicLogo from './assets/anthropic-logo.svg';
+import claudeLogo from './assets/claude-logo.svg';
 
 function PagerTron() {
   const SCREEN_WIDTH = 1280;
@@ -746,32 +748,73 @@ function PagerTron() {
           </a>
         </div>
 
-        <button
-          onClick={resetGame}
-          style={{
-            marginTop: "30px",
-            padding: "15px 30px",
-            fontSize: "24px",
-            fontFamily: "'Press Start 2P', cursive",
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            color: "white",
-            border: "3px solid white",
-            borderRadius: "5px",
-            cursor: "pointer",
-            boxShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
-            transition: "all 0.2s ease",
-          }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-            e.currentTarget.style.transform = "scale(1.05)";
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
-            e.currentTarget.style.transform = "scale(1)";
-          }}
-        >
-          PLAY AGAIN
-        </button>
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: "20px"
+        }}>
+          <button
+            onClick={resetGame}
+            style={{
+              marginTop: "30px",
+              padding: "15px 30px",
+              fontSize: "24px",
+              fontFamily: "'Press Start 2P', cursive",
+              backgroundColor: "rgba(0, 0, 0, 0.6)",
+              color: "white",
+              border: "3px solid white",
+              borderRadius: "5px",
+              cursor: "pointer",
+              boxShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
+              transition: "all 0.2s ease",
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+              e.currentTarget.style.transform = "scale(1.05)";
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
+              e.currentTarget.style.transform = "scale(1)";
+            }}
+          >
+            PLAY AGAIN
+          </button>
+
+          <a
+            href="https://incident.chilipiper.com/me/sofie-vanhal"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              textDecoration: "none"
+            }}
+          >
+            <button
+              style={{
+                marginTop: "30px",
+                padding: "15px 30px",
+                fontSize: "24px",
+                fontFamily: "'Press Start 2P', cursive",
+                backgroundColor: "rgba(215, 118, 85, 0.8)",
+                color: "white",
+                border: "3px solid white",
+                borderRadius: "5px",
+                cursor: "pointer",
+                boxShadow: "0 0 10px rgba(255, 255, 255, 0.5)",
+                transition: "all 0.2s ease",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(215, 118, 85, 1)";
+                e.currentTarget.style.transform = "scale(1.05)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(215, 118, 85, 0.8)";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              GET A DEMO
+            </button>
+          </a>
+        </div>
       </div>
     );
   }
@@ -820,7 +863,7 @@ function PagerTron() {
           color: "rgba(255, 255, 255, 0.6)",
           marginTop: "-10px"
         }}>
-          by incident.io
+          built for Anthropic by incident.io
         </div>
       </div>
 
@@ -1099,7 +1142,11 @@ function PagerTron() {
                 filter: "drop-shadow(0 0 8px #ff8800)",
                 position: "relative"
               }}>
-                🔥💥
+                <img
+                  src={anthropicLogo}
+                  alt="Anthropic Logo"
+                  style={{ width: '60px', height: '60px' }}
+                />
                 {/* Add missile trail effect */}
                 <div style={{
                   position: "absolute",
@@ -1162,13 +1209,21 @@ function PagerTron() {
           )}
 
           <div style={{
-            fontSize: "40px",
             lineHeight: 1,
             transform: `rotate(${player.rotation}deg)`,
             transition: "transform 0.1s ease",
             position: "relative"
           }}>
-            🔥
+            <img
+              src={claudeLogo}
+              alt="Claude Logo"
+              style={{
+                width: '45px',
+                height: '45px',
+                filter: "drop-shadow(0 0 8px #D77655)",
+                borderRadius: "12px"
+              }}
+            />
             {/* Thruster effect when accelerating */}
             {thrusterActive && (
               <div style={{
@@ -1280,14 +1335,36 @@ function PagerTron() {
               // Add trail effect for missiles
               position: "relative"
             }}>
-              {konamiActive ? "🔥💥" : "🔥"}
+              {konamiActive ? (
+                <img
+                  src={claudeLogo}
+                  alt="Claude Logo"
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    filter: "drop-shadow(0 0 8px #D77655)",
+                    borderRadius: "12px"
+                  }}
+                />
+              ) : (
+                <img
+                  src={claudeLogo}
+                  alt="Claude Logo"
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    filter: "drop-shadow(0 0 5px #D77655)",
+                    borderRadius: "6px"
+                  }}
+                />
+              )}
               {/* Vector-based missile trail that works in any direction */}
               <div style={{
                 position: "absolute",
                 opacity: 0.7,
                 filter: "blur(2px)",
                 fontSize: `${konamiActive ? 30 : 15}px`,
-                color: "#ffff00",
+                color: "#FCF2EE",
                 textAlign: "center",
                 // Position trail based on the missile's rotation vector
                 // This ensures trails always appear behind the missile
