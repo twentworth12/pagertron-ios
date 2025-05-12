@@ -26,6 +26,14 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
   const introMusicRef = useRef(null);
   const gameplayMusicRef = useRef(null);
   const [isMuted, setIsMuted] = useState(true); // Start with music muted by default
+
+  // Store mute preference in localStorage for persistence
+  useEffect(() => {
+    const storedMuteState = localStorage.getItem('pagertronMusicMuted');
+    if (storedMuteState !== null) {
+      setIsMuted(storedMuteState === 'true');
+    }
+  }, []);
   const [initializing, setInitializing] = useState(true);
   
   // Initialize audio on component mount
@@ -333,6 +341,9 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     console.log(`Setting music to ${newMuted ? "OFF" : "ON"}`);
     setIsMuted(newMuted);
 
+    // Store preference in localStorage
+    localStorage.setItem('pagertronMusicMuted', newMuted.toString());
+
     // Handle audio based on new state with direct DOM manipulation
     if (newMuted) {
       // Mute - pause both tracks
@@ -400,7 +411,7 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     <div
       style={{
         position: 'absolute',
-        top: 0,
+        top: 15,
         left: 0,
         width: '100%',
         zIndex: 10000, // Absolute highest z-index
@@ -440,6 +451,7 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
           userSelect: 'none', // Prevent text selection
           WebkitTapHighlightColor: 'transparent', // Remove mobile tap highlight
           outline: 'none', // Remove focus outline
+          zIndex: 1000 // Ensure button is above other elements
         }}
       >
         {isMuted ? '🔈 MUSIC OFF' : '🔊 MUSIC ON'}

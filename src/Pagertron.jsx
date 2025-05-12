@@ -46,8 +46,14 @@ function PagerTron() {
         textAlign: "center",
         color: "white",
         fontFamily: "'Press Start 2P', cursive",
-        padding: "20px"
+        padding: "20px",
+        position: "relative"
       }}>
+        <GameMusic
+          key={`music-mobile-${Date.now()}`}
+          isGameStarted={false}
+          isGameOver={false}
+        />
         <div style={{
           fontSize: "48px",
           color: "rgba(255, 255, 255, 0.2)",
@@ -859,6 +865,13 @@ function PagerTron() {
             }}>
               INSERT COIN
             </div>
+            <div style={{
+              fontSize: "14px",
+              marginTop: "30px",
+              textShadow: "1px 1px 0px #000",
+            }}>
+              Use the button at the top to toggle music
+            </div>
           </div>
           <HighScoreTicker />
         </>
@@ -1178,6 +1191,19 @@ function PagerTron() {
                 borderRadius: "12px"
               }}
             />
+            {/* Direction indicator */}
+            <div style={{
+              position: "absolute",
+              top: "-15px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: "0",
+              height: "0",
+              borderLeft: "10px solid transparent",
+              borderRight: "10px solid transparent",
+              borderBottom: "15px solid #FCF2EE",
+              filter: "drop-shadow(0 0 3px #D77655)"
+            }}/>
             {/* Thruster effect when accelerating */}
             {thrusterActive && (
               <div style={{
