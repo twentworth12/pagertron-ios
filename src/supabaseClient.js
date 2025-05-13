@@ -11,22 +11,22 @@ const mockClient = {
     insert: (data) => ({
       select: () => Promise.resolve({ data: data || [], error: null })
     }),
-    select: () => Promise.resolve({ 
+    select: () => Promise.resolve({
       data: [
         { id: 1, player_name: 'Player 1', score: 100, level: 5 },
         { id: 2, player_name: 'Player 2', score: 90, level: 4 },
         { id: 3, player_name: 'Player 3', score: 80, level: 4 }
-      ], 
-      error: null 
+      ],
+      error: null
     }),
     order: () => ({
-      limit: () => Promise.resolve({ 
+      limit: () => Promise.resolve({
         data: [
           { id: 1, player_name: 'Player 1', score: 100, level: 5 },
           { id: 2, player_name: 'Player 2', score: 90, level: 4 },
           { id: 3, player_name: 'Player 3', score: 80, level: 4 }
-        ], 
-        error: null 
+        ],
+        error: null
       })
     })
   })

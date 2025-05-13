@@ -14,11 +14,11 @@ CREATE INDEX idx_high_scores_score ON high_scores(score DESC);
 ALTER TABLE high_scores ENABLE ROW LEVEL SECURITY;
 
 -- Create policy to allow anyone to read high scores
-CREATE POLICY "Anyone can read high scores" 
+CREATE POLICY "Anyone can read high scores"
   ON high_scores FOR SELECT USING (true);
 
 -- Create policy to allow anyone to insert high scores
-CREATE POLICY "Anyone can insert high scores" 
+CREATE POLICY "Anyone can insert high scores"
   ON high_scores FOR INSERT WITH CHECK (true);
 
 -- Optional: Create a function to limit to 10 high scores
@@ -41,3 +41,47 @@ CREATE TRIGGER trigger_maintain_top_scores
 AFTER INSERT ON high_scores
 FOR EACH STATEMENT
 EXECUTE FUNCTION maintain_top_scores();
+
+-- Create high_scores_anthropic table
+CREATE TABLE high_scores_anthropic (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  player_name TEXT NOT NULL,
+  score INTEGER NOT NULL,
+  level INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create index for faster sorting by score
+CREATE INDEX idx_high_scores_anthropic_score ON high_scores_anthropic(score DESC);
+
+-- Set up row-level security
+ALTER TABLE high_scores_anthropic ENABLE ROW LEVEL SECURITY;
+
+-- Create policy to allow anyone to read high scores
+CREATE POLICY "Anyone can read high scores anthropic"
+  ON high_scores_anthropic FOR SELECT USING (true);
+
+-- Create policy to allow anyone to insert high scores
+CREATE POLICY "Anyone can insert high scores anthropic"
+  ON high_scores_anthropic FOR INSERT WITH CHECK (true);
+
+-- Create a function to limit to 10 high scores for anthropic table
+CREATE OR REPLACE FUNCTION maintain_top_scores_anthropic()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- After inserting a new score, delete excess scores beyond top 10
+  DELETE FROM high_scores_anthropic
+  WHERE id IN (
+    SELECT id FROM high_scores_anthropic
+    ORDER BY score DESC, created_at ASC
+    OFFSET 10
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger to run after each insert
+CREATE TRIGGER trigger_maintain_top_scores_anthropic
+AFTER INSERT ON high_scores_anthropic
+FOR EACH STATEMENT
+EXECUTE FUNCTION maintain_top_scores_anthropic();

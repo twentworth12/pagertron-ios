@@ -11,12 +11,12 @@ import { supabase } from './supabaseClient';
 export const saveHighScore = async (playerName, score, level) => {
   try {
     const { data, error } = await supabase
-      .from('high_scores')
+      .from('high_scores_anthropic')
       .insert([
         { player_name: playerName, score, level }
       ])
       .select();
-    
+
     if (error) throw error;
     return data;
   } catch (error) {
@@ -32,11 +32,11 @@ export const saveHighScore = async (playerName, score, level) => {
 export const getTopHighScores = async (limit = 10) => {
   try {
     const { data, error } = await supabase
-      .from('high_scores')
+      .from('high_scores_anthropic')
       .select('*')
       .order('score', { ascending: false })
       .limit(limit);
-    
+
     if (error) throw error;
     return data;
   } catch (error) {
@@ -53,10 +53,10 @@ export const getTopHighScores = async (limit = 10) => {
 export const isTopScore = async (score) => {
   try {
     const topScores = await getTopHighScores();
-    
+
     // If we have fewer than 10 scores, any score qualifies
     if (topScores.length < 10) return true;
-    
+
     // Otherwise, check if this score is higher than the lowest top score
     const lowestTopScore = topScores[topScores.length - 1].score;
     return score > lowestTopScore;
