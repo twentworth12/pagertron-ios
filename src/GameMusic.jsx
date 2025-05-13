@@ -31,7 +31,9 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
   useEffect(() => {
     const storedMuteState = localStorage.getItem('pagertronMusicMuted');
     if (storedMuteState !== null) {
-      setIsMuted(storedMuteState === 'true');
+      const shouldMute = storedMuteState === 'true';
+      console.log('Found stored music preference:', shouldMute ? 'muted' : 'unmuted');
+      setIsMuted(shouldMute);
     }
   }, []);
   const [initializing, setInitializing] = useState(true);
@@ -40,6 +42,12 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
   useEffect(() => {
     console.log("Initializing GameMusic component");
 
+    // Check if audio elements already exist and remove them
+    const existingIntro = document.getElementById('intro-music');
+    const existingGameplay = document.getElementById('gameplay-music');
+    if (existingIntro) document.body.removeChild(existingIntro);
+    if (existingGameplay) document.body.removeChild(existingGameplay);
+    
     // Create and configure audio elements with HTML5 Audio API for better compatibility
     const introMusic = new Audio('/music/Race.mp3');
     introMusic.id = "intro-music";
@@ -96,12 +104,23 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     
     // Helper function to start playing intro music
     const startIntroMusic = () => {
-      if (!introMusicRef.current) return;
+      if (!introMusicRef.current) {
+        console.error('No intro music reference');
+        return;
+      }
+      
+      console.log('Attempting to play intro music, muted state:', isMuted);
+      
+      if (isMuted) {
+        console.log('Music is muted, skipping playback');
+        setInitializing(false);
+        return;
+      }
       
       const promise = introMusicRef.current.play();
       if (promise !== undefined) {
         promise.then(() => {
-          console.log('Intro music started');
+          console.log('Intro music started successfully');
           setInitializing(false);
         }).catch(err => {
           console.log('Autoplay still prevented. Will try with user gesture.', err);
@@ -109,7 +128,10 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
           // Specifically set up for first valid user interaction
           // Use only click and touchstart, not keydown to avoid spacebar conflicts
           const handleFirstInteraction = () => {
-            introMusicRef.current.play().catch(e => console.error(e));
+            if (!isMuted && introMusicRef.current) {
+              console.log('First user interaction detected, trying to play music again');
+              introMusicRef.current.play().catch(e => console.error('Still failed to play after interaction:', e));
+            }
             ['click', 'touchstart'].forEach(type => {
               document.removeEventListener(type, handleFirstInteraction);
             });
@@ -123,26 +145,27 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       }
     };
     
-    // Only try to start music if not muted
-    if (!isMuted) {
-      // Use various techniques to try to start the music
-      startIntroMusic();
+    // Try to start music based on mute state
+    console.log('Initial music setup, muted state:', isMuted);
+    startIntroMusic();
 
-      // Brute force approach - try every 500ms for first 5 seconds
-      const autoplayAttempts = [];
-      for (let i = 1; i <= 10; i++) {
-        autoplayAttempts.push(
-          setTimeout(() => {
-            if (initializing && !isMuted) {
-              forcePlay();
-              startIntroMusic();
-            }
-          }, i * 500)
-        );
-      }
-    } else {
-      // If starting muted, just mark as initialized
-      setInitializing(false);
+    // Brute force approach - try every 500ms for first 5 seconds
+    const autoplayAttempts = [];
+    for (let i = 1; i <= 10; i++) {
+      autoplayAttempts.push(
+        setTimeout(() => {
+          if (initializing && !isMuted) {
+            console.log(`Autoplay attempt ${i}/10`);
+            forcePlay();
+            startIntroMusic();
+          }
+        }, i * 500)
+      );
+    }
+    
+    // If starting muted, mark as initialized after a short delay
+    if (isMuted) {
+      setTimeout(() => setInitializing(false), 100);
     }
 
     // Force audio playback if user clicks anywhere on the page
@@ -184,13 +207,21 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
   
   // Handle music transitions based on game state
   useEffect(() => {
-    if (isMuted) return; // Skip transitions if muted
-
     // Debug log to see state changes
-    console.log("Music transition - Game Started:", isGameStarted, "Game Over:", isGameOver);
+    console.log("Music transition - Game Started:", isGameStarted, "Game Over:", isGameOver, "Muted:", isMuted);
+    
+    if (isMuted) {
+      // Even if muted, ensure both tracks are paused
+      if (introMusicRef.current) introMusicRef.current.pause();
+      if (gameplayMusicRef.current) gameplayMusicRef.current.pause();
+      return; // Skip transitions if muted
+    }
 
     const handleMusicTransition = async () => {
-      if (!introMusicRef.current || !gameplayMusicRef.current) return;
+      if (!introMusicRef.current || !gameplayMusicRef.current) {
+        console.error("Missing audio references during transition");
+        return;
+      }
       
       if (isGameStarted && !isGameOver) {
         // Transition to gameplay music
@@ -325,15 +356,22 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       // Try to recreate them
       if (!introMusicRef.current) {
         introMusicRef.current = new Audio('/music/Race.mp3');
+        introMusicRef.current.id = "intro-music";
         introMusicRef.current.loop = true;
         introMusicRef.current.volume = 0.5;
+        introMusicRef.current.preload = "auto";
+        document.body.appendChild(introMusicRef.current);
       }
       if (!gameplayMusicRef.current) {
         gameplayMusicRef.current = new Audio('/music/Fatality.mp3');
+        gameplayMusicRef.current.id = "gameplay-music";
         gameplayMusicRef.current.loop = true;
         gameplayMusicRef.current.volume = 0.4;
+        gameplayMusicRef.current.preload = "auto";
+        document.body.appendChild(gameplayMusicRef.current);
       }
-      return; // Try again next click
+      setTimeout(() => toggleMute(), 100); // Try again after ensuring elements exist
+      return;
     }
 
     // Toggle the mute state
