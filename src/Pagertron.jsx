@@ -836,7 +836,7 @@ function PagerTron() {
           color: "rgba(255, 255, 255, 0.6)",
           marginTop: "-10px"
         }}>
-          vibe coded for Anthropic by incident.io
+          vibe Claude coded for Anthropic by incident.io
         </div>
       </div>
 
