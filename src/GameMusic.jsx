@@ -289,6 +289,7 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
   useEffect(() => {
     // Debug log to see state changes
     console.log("Music transition - Game Started:", isGameStarted, "Game Over:", isGameOver, "Muted:", isMuted);
+    console.log("NOTE: gameplay music disabled for performance");
     
     if (isMuted) {
       // Even if muted, ensure both tracks are paused
@@ -296,6 +297,9 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       if (gameplayMusicRef.current) gameplayMusicRef.current.pause();
       return; // Skip transitions if muted
     }
+    
+    // Always stick to intro music for better performance, regardless of game state
+    isGameStarted = false;
 
     const handleMusicTransition = async () => {
       if (!introMusicRef.current || !gameplayMusicRef.current) {
@@ -737,7 +741,7 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
           zIndex: 1000 // Ensure button is above other elements
         }}
       >
-        {isMuted ? '🔈 MUSIC OFF' : '🔊 MUSIC ON'}
+        {isMuted ? '🔈 MENU MUSIC OFF' : '🔊 MENU MUSIC ON'}
       </button>
     </div>
   );

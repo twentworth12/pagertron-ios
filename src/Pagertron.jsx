@@ -654,7 +654,7 @@ function PagerTron() {
       }}>
         <GameMusic
           key={`music-highscore-${Date.now()}`}
-          isGameStarted={gameStarted}
+          isGameStarted={false}
           isGameOver={gameOver}
         />
         <HighScoreModal
@@ -804,7 +804,7 @@ function PagerTron() {
     }}>
       <GameMusic
         key={`music-game-${gameStarted ? 'playing' : 'menu'}-${gameOver ? 'over' : 'active'}-${Date.now()}`}
-        isGameStarted={gameStarted}
+        isGameStarted={false}
         isGameOver={gameOver}
       />
       {/* Background Text Overlay */}
