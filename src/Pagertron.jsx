@@ -802,11 +802,13 @@ function PagerTron() {
       border: "5px solid white",
       overflow: "hidden"
     }}>
-      <GameMusic
-        key={`music-game-${gameStarted ? 'playing' : 'menu'}-${gameOver ? 'over' : 'active'}-${Date.now()}`}
-        isGameStarted={false}
-        isGameOver={gameOver}
-      />
+      {!gameStarted && (
+        <GameMusic
+          key={`music-menu-${Date.now()}`}
+          isGameStarted={false}
+          isGameOver={gameOver}
+        />
+      )}
       {/* Background Text Overlay */}
       <div style={{
         position: "absolute",
