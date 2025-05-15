@@ -682,8 +682,7 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       style={{
         position: 'absolute',
         top: 15,
-        left: 0,
-        width: '100%',
+        right: 15,
         zIndex: 10000, // Absolute highest z-index
         pointerEvents: 'none', // Let events pass through to game elements
       }}
@@ -718,23 +717,19 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
           }
         }}
         style={{
-          position: 'relative',
-          margin: '10px auto',
-          display: 'block',
           backgroundColor: isMuted ? '#ff3333' : '#33cc33', // Brighter solid colors
           border: '4px solid white', // Very thick border
           borderRadius: '10px',
           color: 'white',
           fontFamily: "'Press Start 2P', cursive",
-          fontSize: '16px', // Larger text
+          fontSize: '14px', // Slightly smaller text
           fontWeight: 'bold',
-          padding: '12px 24px', // Extra large clickable area
+          padding: '8px 16px', // Smaller button
           cursor: 'pointer',
           pointerEvents: 'auto', // Ensure clicks are detected on this element
-          boxShadow: '0 0 25px white, 0 0 15px yellow', // Extra bright glow
+          boxShadow: '0 0 15px white, 0 0 10px yellow', // Slightly less intense glow
           animation: isMuted ? 'pulse 1s infinite alternate' : 'pulse 3s infinite alternate',
           textShadow: '2px 2px 4px #000000', // Text shadow for better visibility
-          width: '180px', // Fixed width for consistency
           userSelect: 'none', // Prevent text selection
           WebkitTapHighlightColor: 'transparent', // Remove mobile tap highlight
           outline: 'none', // Remove focus outline
