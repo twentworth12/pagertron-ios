@@ -308,39 +308,77 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
         try {
           console.log("Switching to gameplay music");
 
+          // Make sure the audio context is active (if it exists)
+          if (window.PagertronAudio && window.PagertronAudio.context) {
+            await window.PagertronAudio.context.resume().catch(() => {});
+          }
+
+          // Create and use our own audio context to ensure it's running
+          try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+              const tempContext = new AudioContext();
+              await tempContext.resume().catch(() => {});
+            }
+          } catch (e) {
+            console.log("Audio context creation error:", e);
+          }
+
           // Stop intro music immediately
           introMusicRef.current.pause();
           introMusicRef.current.currentTime = 0;
 
-          // Immediately start gameplay music with a very short delay
+          // Reset gameplay music to beginning
           gameplayMusicRef.current.currentTime = 0;
+          gameplayMusicRef.current.volume = 0.4;
+          gameplayMusicRef.current.loop = true; // Ensure looping is enabled
+          
           console.log("Attempting to play gameplay music");
 
           // Force user interaction to enable audio
           forcePlay();
           document.body.click();
-
-          // Try to play with aggressive retry
-          const playPromise = gameplayMusicRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise.then(() => {
-              console.log("Gameplay music started successfully");
-            }).catch(e => {
-              console.error('Failed to play gameplay music:', e);
-              // Try multiple times with increasing delay
+          
+          // Try explicit load
+          gameplayMusicRef.current.load();
+          
+          // Enhanced aggressive retry mechanism for gameplay music
+          const maxRetries = 5;
+          const playGameplayMusic = async (retryCount = 0) => {
+            if (retryCount >= maxRetries) {
+              console.error("Max retries reached for gameplay music");
+              return;
+            }
+            
+            try {
+              console.log(`Gameplay music play attempt ${retryCount + 1}`);
+              // Always make sure volume is set correctly
+              gameplayMusicRef.current.volume = 0.4;
+              
+              const playPromise = gameplayMusicRef.current.play();
+              if (playPromise !== undefined) {
+                await playPromise;
+                console.log("✅ Gameplay music started successfully");
+              }
+            } catch (err) {
+              console.error(`Failed gameplay music attempt ${retryCount + 1}:`, err);
+              
+              // Force browser to acknowledge user interaction
+              forcePlay();
+              document.body.click();
+              
+              // Wait longer with each retry
+              const delay = 200 + (retryCount * 300);
+              console.log(`Retrying gameplay music in ${delay}ms`);
+              
               setTimeout(() => {
-                forcePlay();
-                gameplayMusicRef.current.play().catch(err => {
-                  console.error('Second attempt failed:', err);
-                  // One more try after a longer delay
-                  setTimeout(() => {
-                    forcePlay();
-                    gameplayMusicRef.current.play().catch(console.error);
-                  }, 500);
-                });
-              }, 100);
-            });
-          }
+                playGameplayMusic(retryCount + 1);
+              }, delay);
+            }
+          };
+          
+          // Start the retry cascade
+          playGameplayMusic();
         } catch (error) {
           console.error('Error in music transition to gameplay:', error);
         }
@@ -395,17 +433,86 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     // Run the music transition immediately
     handleMusicTransition();
 
-    // Also set up a delayed retry to handle edge cases
+    // Set up multiple delayed retries to handle edge cases
     if (isGameStarted && !isGameOver && !isMuted) {
-      const retryTimer = setTimeout(() => {
-        console.log("Retry playing gameplay music");
+      const retryTimers = [];
+      
+      // First retry after 1 second
+      retryTimers.push(setTimeout(() => {
+        console.log("First retry for gameplay music");
         if (gameplayMusicRef.current && gameplayMusicRef.current.paused) {
-          forcePlay();
-          gameplayMusicRef.current.play().catch(console.error);
+          try {
+            forcePlay();
+            gameplayMusicRef.current.volume = 0.4;
+            gameplayMusicRef.current.currentTime = 0;
+            gameplayMusicRef.current.load();
+            gameplayMusicRef.current.play().catch(() => console.log("First retry failed"));
+          } catch (e) {
+            console.error("Error in first retry:", e);
+          }
         }
-      }, 1000);
-
-      return () => clearTimeout(retryTimer);
+      }, 1000));
+      
+      // Second retry after 2 seconds
+      retryTimers.push(setTimeout(() => {
+        console.log("Second retry for gameplay music");
+        if (gameplayMusicRef.current && gameplayMusicRef.current.paused) {
+          try {
+            forcePlay();
+            
+            // Try to use the global audio context if available
+            if (window.PagertronAudio && window.PagertronAudio.context) {
+              window.PagertronAudio.context.resume().catch(() => {});
+            }
+            
+            // Create a temporary audio context to help unlock audio
+            try {
+              const AudioContext = window.AudioContext || window.webkitAudioContext;
+              const tempContext = new AudioContext();
+              tempContext.resume();
+            } catch (e) {}
+            
+            // Finally try to play
+            gameplayMusicRef.current.volume = 0.4;
+            gameplayMusicRef.current.play().catch(() => console.log("Second retry failed"));
+          } catch (e) {
+            console.error("Error in second retry:", e);
+          }
+        }
+      }, 2000));
+      
+      // Third final retry after 4 seconds
+      retryTimers.push(setTimeout(() => {
+        console.log("Final retry for gameplay music");
+        if (gameplayMusicRef.current && gameplayMusicRef.current.paused) {
+          try {
+            // Create a new audio element as a last resort
+            const newGameplayMusic = new Audio('/music/Fatality.mp3');
+            newGameplayMusic.id = "gameplay-music-new";
+            newGameplayMusic.loop = true;
+            newGameplayMusic.volume = 0.4;
+            newGameplayMusic.play().then(() => {
+              console.log("✅ New gameplay music element started successfully");
+              // Replace the old reference if this succeeds
+              if (gameplayMusicRef.current) {
+                gameplayMusicRef.current.pause();
+              }
+              gameplayMusicRef.current = newGameplayMusic;
+            }).catch(e => {
+              console.error("Final retry with new element failed:", e);
+              document.body.removeChild(newGameplayMusic);
+            });
+            document.body.appendChild(newGameplayMusic);
+          } catch (e) {
+            console.error("Error in final retry:", e);
+          }
+        }
+      }, 4000));
+      
+      // Clean up all timers when the effect is cleaned up
+      return () => {
+        retryTimers.forEach(timer => clearTimeout(timer));
+      };
     }
 
   }, [isGameStarted, isGameOver, isMuted]);
