@@ -230,7 +230,7 @@ function HighScoreModal({ score, level, onClose, isVisible }) {
 
             {/* 80s arcade-style swag button */}
             <a
-              href="https://incident.io"
+              href="https://incident.andopen.co/r/WYrtFgYqA4QvKF"
               target="_blank"
               rel="noopener noreferrer"
               className="swag-button"
