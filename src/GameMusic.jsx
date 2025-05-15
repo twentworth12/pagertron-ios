@@ -25,7 +25,7 @@ const forcePlay = () => {
 const GameMusic = ({ isGameStarted, isGameOver }) => {
   const introMusicRef = useRef(null);
   const gameplayMusicRef = useRef(null);
-  const [isMuted, setIsMuted] = useState(true); // Start with music muted by default
+  const [isMuted, setIsMuted] = useState(false); // Start with music unmuted by default for better user experience
 
   // Store mute preference in localStorage for persistence
   useEffect(() => {
@@ -34,19 +34,68 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       const shouldMute = storedMuteState === 'true';
       console.log('Found stored music preference:', shouldMute ? 'muted' : 'unmuted');
       setIsMuted(shouldMute);
+    } else {
+      // If no preference is stored, set a default preference of unmuted
+      localStorage.setItem('pagertronMusicMuted', 'false');
+    }
+    
+    // Try to reset any existing audio elements
+    try {
+      const existingIntro = document.getElementById('intro-music');
+      const existingGameplay = document.getElementById('gameplay-music');
+      if (existingIntro) existingIntro.volume = 0.5;
+      if (existingGameplay) existingGameplay.volume = 0.4;
+    } catch (e) {
+      console.log("Audio reset error:", e);
     }
   }, []);
   const [initializing, setInitializing] = useState(true);
   
-  // Initialize audio on component mount
+  // Initialize audio on component mount with advanced unlocking strategies
   useEffect(() => {
     console.log("Initializing GameMusic component");
 
+    // Try to unlock any potential browser audio restrictions first
+    try {
+      // Method 1: Create and resume a new audio context
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        const tempContext = new AudioContext();
+        tempContext.resume().catch(e => console.log("Context resume error:", e));
+        
+        // Play a silent buffer
+        const buffer = tempContext.createBuffer(1, 1, 22050);
+        const source = tempContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(tempContext.destination);
+        source.start(0);
+      }
+      
+      // Method 2: Check if our global audio context exists and try to resume it
+      if (window.PagertronAudio && window.PagertronAudio.context) {
+        window.PagertronAudio.context.resume().catch(e => console.log("Global context resume error:", e));
+      }
+      
+      // Method 3: Simulate user interaction
+      const tempButton = document.createElement("button");
+      document.body.appendChild(tempButton);
+      tempButton.click();
+      document.body.removeChild(tempButton);
+    } catch (e) {
+      console.log("Audio context initialization error:", e);
+    }
+
     // Check if audio elements already exist and remove them
-    const existingIntro = document.getElementById('intro-music');
-    const existingGameplay = document.getElementById('gameplay-music');
-    if (existingIntro) document.body.removeChild(existingIntro);
-    if (existingGameplay) document.body.removeChild(existingGameplay);
+    try {
+      const existingIntro = document.getElementById('intro-music');
+      const existingGameplay = document.getElementById('gameplay-music');
+      if (existingIntro) document.body.removeChild(existingIntro);
+      if (existingGameplay) document.body.removeChild(existingGameplay);
+    } catch (e) {
+      console.log("Error removing existing audio elements:", e);
+    }
+    
+    console.log("Creating new audio elements");
     
     // Create and configure audio elements with HTML5 Audio API for better compatibility
     const introMusic = new Audio('/music/Race.mp3');
@@ -54,12 +103,14 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     introMusic.loop = true;
     introMusic.volume = 0.5;
     introMusic.preload = "auto"; // Force preloading
+    introMusic.controls = false; // Hide controls
 
     const gameplayMusic = new Audio('/music/Fatality.mp3');
     gameplayMusic.id = "gameplay-music";
     gameplayMusic.loop = true;
     gameplayMusic.volume = 0.4;
     gameplayMusic.preload = "auto"; // Force preloading
+    gameplayMusic.controls = false; // Hide controls
 
     // Add audio elements directly to the DOM for better browser compatibility
     document.body.appendChild(introMusic);
@@ -73,25 +124,54 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     introMusic.load();
     gameplayMusic.load();
 
-    // Try to unlock audio with user interaction simulation
-    const unlockAudio = () => {
-      const tempButton = document.createElement("button");
-      document.body.appendChild(tempButton);
-      tempButton.click();
-      document.body.removeChild(tempButton);
+    // Add event listeners to know when audio is loaded
+    introMusic.addEventListener('canplaythrough', () => {
+      console.log('Intro music loaded and ready to play');
+    });
 
-      // Try to play and immediately pause both tracks to unlock the audio context
+    gameplayMusic.addEventListener('canplaythrough', () => {
+      console.log('Gameplay music loaded and ready to play');
+    });
+
+    // Comprehensive audio unlock strategy
+    const unlockAudioComprehensive = () => {
+      console.log("Attempting comprehensive audio unlock");
+      
+      // First, try a user interaction simulation
+      document.body.click();
+      
+      // Then, try to play and immediately pause both tracks
       try {
-        introMusic.play().then(() => introMusic.pause()).catch(e => console.log("Audio setup:", e));
-        gameplayMusic.play().then(() => gameplayMusic.pause()).catch(e => console.log("Audio setup:", e));
+        // For intro music
+        const introPromise = introMusic.play();
+        if (introPromise !== undefined) {
+          introPromise.then(() => {
+            console.log("Intro music unlocked");
+            if (isMuted) {
+              introMusic.pause();
+            }
+          }).catch(e => console.log("Intro music unlock failed:", e));
+        }
+        
+        // For gameplay music (with a slight delay)
+        setTimeout(() => {
+          const gameplayPromise = gameplayMusic.play();
+          if (gameplayPromise !== undefined) {
+            gameplayPromise.then(() => {
+              console.log("Gameplay music unlocked");
+              gameplayMusic.pause();
+            }).catch(e => console.log("Gameplay music unlock failed:", e));
+          }
+        }, 100);
       } catch (e) {
-        console.log("Initial audio setup error:", e);
+        console.log("Audio unlock attempt error:", e);
       }
     };
 
-    // Try unlock immediately and after a delay
-    unlockAudio();
-    setTimeout(unlockAudio, 500);
+    // Multiple unlock attempts with increasing delays
+    unlockAudioComprehensive();
+    setTimeout(unlockAudioComprehensive, 500);
+    setTimeout(unlockAudioComprehensive, 1500);
 
     // Add event listeners to know when audio is loaded
     introMusicRef.current.addEventListener('canplaythrough', () => {
@@ -330,7 +410,7 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
 
   }, [isGameStarted, isGameOver, isMuted]);
   
-  // More robust toggle mute function
+  // Completely revamped toggle mute function for better reliability
   const toggleMute = () => {
     // Log detailed info for debugging
     console.log("Toggle music button clicked!");
@@ -340,40 +420,53 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       gameplayMusic: gameplayMusicRef.current ? "exists" : "null"
     });
 
-    // Force immediate audio context unlock with a user gesture
-    const tempButton = document.createElement("button");
-    document.body.appendChild(tempButton);
-    tempButton.click();
-    document.body.removeChild(tempButton);
-
-    // Get direct references to audio elements
-    const introMusic = introMusicRef.current;
-    const gameplayMusic = gameplayMusicRef.current;
-
-    // Verify audio elements exist
-    if (!introMusic || !gameplayMusic) {
-      console.error("Audio elements not properly initialized!");
-      // Try to recreate them
-      if (!introMusicRef.current) {
-        introMusicRef.current = new Audio('/music/Race.mp3');
-        introMusicRef.current.id = "intro-music";
-        introMusicRef.current.loop = true;
-        introMusicRef.current.volume = 0.5;
-        introMusicRef.current.preload = "auto";
-        document.body.appendChild(introMusicRef.current);
+    // Force immediate audio context unlock with multiple approaches
+    try {
+      // Method 1: Simple click
+      const tempButton = document.createElement("button");
+      document.body.appendChild(tempButton);
+      tempButton.click();
+      document.body.removeChild(tempButton);
+      
+      // Method 2: Try to trigger the global audio context if it exists
+      if (window.PagertronAudio && window.PagertronAudio.context) {
+        window.PagertronAudio.context.resume().catch(e => console.log("Context resume error:", e));
       }
-      if (!gameplayMusicRef.current) {
-        gameplayMusicRef.current = new Audio('/music/Fatality.mp3');
-        gameplayMusicRef.current.id = "gameplay-music";
-        gameplayMusicRef.current.loop = true;
-        gameplayMusicRef.current.volume = 0.4;
-        gameplayMusicRef.current.preload = "auto";
-        document.body.appendChild(gameplayMusicRef.current);
-      }
-      setTimeout(() => toggleMute(), 100); // Try again after ensuring elements exist
-      return;
+      
+      // Method 3: Create and play a silent buffer
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      audioContext.resume().catch(e => console.log("Context resume error:", e));
+    } catch (e) {
+      console.log("Audio context unlock error:", e);
     }
 
+    // Ensure audio elements exist or recreate them
+    if (!introMusicRef.current) {
+      console.log("Creating new intro music element");
+      const introMusic = new Audio('/music/Race.mp3');
+      introMusic.id = "intro-music";
+      introMusic.loop = true;
+      introMusic.volume = 0.5;
+      introMusic.preload = "auto";
+      document.body.appendChild(introMusic);
+      introMusicRef.current = introMusic;
+    }
+    
+    if (!gameplayMusicRef.current) {
+      console.log("Creating new gameplay music element");
+      const gameplayMusic = new Audio('/music/Fatality.mp3');
+      gameplayMusic.id = "gameplay-music";
+      gameplayMusic.loop = true;
+      gameplayMusic.volume = 0.4;
+      gameplayMusic.preload = "auto";
+      document.body.appendChild(gameplayMusic);
+      gameplayMusicRef.current = gameplayMusic;
+    }
+    
+    // Now we definitely have audio elements
+    const introMusic = introMusicRef.current;
+    const gameplayMusic = gameplayMusicRef.current;
+    
     // Toggle the mute state
     const newMuted = !isMuted;
     console.log(`Setting music to ${newMuted ? "OFF" : "ON"}`);
@@ -382,62 +475,90 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     // Store preference in localStorage
     localStorage.setItem('pagertronMusicMuted', newMuted.toString());
 
-    // Handle audio based on new state with direct DOM manipulation
+    // Handle audio based on new state
     if (newMuted) {
       // Mute - pause both tracks
-      introMusic.pause();
-      gameplayMusic.pause();
-      console.log("All music paused");
+      try {
+        introMusic.pause();
+        gameplayMusic.pause();
+        console.log("All music paused successfully");
+      } catch (e) {
+        console.error("Error pausing music:", e);
+      }
     } else {
       // Unmute - determine which track to play
-      if (isGameStarted && !isGameOver) {
-        // Game is active - play gameplay music
-        introMusic.pause();
+      try {
+        if (isGameStarted && !isGameOver) {
+          console.log("Game active - playing gameplay music");
+          // Game is active - play gameplay music
+          introMusic.pause();
 
-        // Reset and play gameplay music with direct method
-        gameplayMusic.currentTime = 0;
-        gameplayMusic.volume = 0.4;
+          // Ensure gameplay music is ready
+          gameplayMusic.load();
+          gameplayMusic.currentTime = 0;
+          gameplayMusic.volume = 0.4;
 
-        // Force play with timeout as fallback
-        const playGameMusic = () => {
-          console.log("Attempting to play gameplay music");
-          const playPromise = gameplayMusic.play();
-          if (playPromise) {
-            playPromise.catch(e => {
-              console.error("Gameplay music play failed:", e);
-              // Try one more time after a short delay
-              setTimeout(() => gameplayMusic.play().catch(console.error), 100);
-            });
-          }
-        };
+          // Aggressive approach to playing audio
+          const playGameMusic = () => {
+            console.log("Play attempt: gameplay music");
+            try {
+              const playPromise = gameplayMusic.play();
+              if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                  console.error("Gameplay music play failed:", e);
+                  // Force a user interaction and try again
+                  document.body.click();
+                  setTimeout(() => {
+                    try { gameplayMusic.play(); } catch(e) { console.error("Retry failed:", e); }
+                  }, 100);
+                });
+              }
+            } catch (e) {
+              console.error("Error playing gameplay music:", e);
+            }
+          };
 
-        // Try immediately and with a small delay
-        playGameMusic();
-        setTimeout(playGameMusic, 200);
-      } else {
-        // Menu/game over - play intro music
-        gameplayMusic.pause();
+          // Try multiple times with increasing delays
+          playGameMusic();
+          setTimeout(playGameMusic, 200);
+          setTimeout(playGameMusic, 500);
+        } else {
+          console.log("Menu/game over - playing intro music");
+          // Menu/game over - play intro music
+          gameplayMusic.pause();
 
-        // Reset and play intro music with direct method
-        introMusic.currentTime = 0;
-        introMusic.volume = 0.5;
+          // Ensure intro music is ready
+          introMusic.load();
+          introMusic.currentTime = 0;
+          introMusic.volume = 0.5;
 
-        // Force play with timeout as fallback
-        const playIntroMusic = () => {
-          console.log("Attempting to play intro music");
-          const playPromise = introMusic.play();
-          if (playPromise) {
-            playPromise.catch(e => {
-              console.error("Intro music play failed:", e);
-              // Try one more time after a short delay
-              setTimeout(() => introMusic.play().catch(console.error), 100);
-            });
-          }
-        };
+          // Aggressive approach to playing audio
+          const playIntroMusic = () => {
+            console.log("Play attempt: intro music");
+            try {
+              const playPromise = introMusic.play();
+              if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                  console.error("Intro music play failed:", e);
+                  // Force a user interaction and try again
+                  document.body.click();
+                  setTimeout(() => {
+                    try { introMusic.play(); } catch(e) { console.error("Retry failed:", e); }
+                  }, 100);
+                });
+              }
+            } catch (e) {
+              console.error("Error playing intro music:", e);
+            }
+          };
 
-        // Try immediately and with a small delay
-        playIntroMusic();
-        setTimeout(playIntroMusic, 200);
+          // Try multiple times with increasing delays
+          playIntroMusic();
+          setTimeout(playIntroMusic, 200);
+          setTimeout(playIntroMusic, 500);
+        }
+      } catch (e) {
+        console.error("Error in music toggle logic:", e);
       }
     }
   };
@@ -467,6 +588,23 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
           console.log("Music button clicked, current state:", isMuted);
           // Toggle music state
           toggleMute();
+          
+          // Force a DOM trigger for autoplay policies
+          document.body.click();
+          
+          // Add a dummy audio element and immediately play/pause it to unlock audio context
+          try {
+            const unlockAudio = document.createElement('audio');
+            unlockAudio.setAttribute('src', '/music/Race.mp3');
+            unlockAudio.load();
+            unlockAudio.volume = 0;
+            unlockAudio.play().then(() => {
+              unlockAudio.pause();
+              unlockAudio.remove();
+            }).catch(e => console.log("Audio unlock failed:", e));
+          } catch (e) {
+            console.log("Audio unlock error:", e);
+          }
         }}
         style={{
           position: 'relative',

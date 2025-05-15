@@ -2,7 +2,7 @@
 // We need to create this file separately and load it early in the page lifecycle
 
 // Create a global audio context that will be used by the game
-window.PagaertronAudio = {
+window.PagertronAudio = {
   context: null,
   unlocked: false,
   raceBuffer: null,
@@ -54,4 +54,4 @@ window.PagaertronAudio = {
 };
 
 // Initialize as soon as the script loads
-window.PagaertronAudio.init();
+window.PagertronAudio.init();
