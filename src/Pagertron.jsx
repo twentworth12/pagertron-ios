@@ -6,6 +6,7 @@ import HighScoreTicker from './HighScoreTicker';
 import GameMusic from './GameMusic';
 import anthropicLogo from './assets/anthropic-logo.svg';
 import claudeLogo from './assets/claude-logo.svg';
+import { VERSION, BUILD_NUMBER, BUILD_DATE } from './version';
 
 function PagerTron() {
   const SCREEN_WIDTH = 1280;
@@ -830,6 +831,19 @@ function PagerTron() {
           onClose={handleCloseHighScoreModal}
           isVisible={showHighScoreModal}
         />
+        {/* Version display */}
+        <div style={{
+          position: "absolute",
+          bottom: "5px",
+          left: "5px",
+          fontSize: "10px",
+          fontFamily: "'Press Start 2P', cursive",
+          color: "rgba(255, 255, 255, 0.5)",
+          textShadow: "1px 1px 0px rgba(0, 0, 0, 0.5)",
+          zIndex: 1
+        }}>
+          v{VERSION}.{BUILD_NUMBER} ({BUILD_DATE})
+        </div>
       </div>
     );
   }
@@ -859,6 +873,19 @@ function PagerTron() {
           isGameStarted={false}
           isGameOver={true}
         />
+        {/* Version display */}
+        <div style={{
+          position: "absolute",
+          bottom: "5px",
+          left: "5px",
+          fontSize: "10px",
+          fontFamily: "'Press Start 2P', cursive",
+          color: "rgba(255, 255, 255, 0.5)",
+          textShadow: "1px 1px 0px rgba(0, 0, 0, 0.5)",
+          zIndex: 1
+        }}>
+          v{VERSION}.{BUILD_NUMBER} ({BUILD_DATE})
+        </div>
         <img
           src="https://media.licdn.com/dms/image/v2/D4E0BAQFJhMcjf87eCA/company-logo_200_200/company-logo_200_200/0/1709897084853/incident_io_logo?e=2147483647&v=beta&t=YhaUWh2pX9QqQKlHsXxEjzyd6KCbH5ntKRAJ6fx2SP4"
           alt="Incident.io Logo"
@@ -1036,13 +1063,6 @@ function PagerTron() {
             }}>
               INSERT COIN
             </div>
-            <div style={{
-              fontSize: "14px",
-              marginTop: "30px",
-              textShadow: "1px 1px 0px #000",
-            }}>
-              Use the button at the top to toggle music
-            </div>
           </div>
           <HighScoreTicker />
         </>
@@ -1113,6 +1133,22 @@ function PagerTron() {
           Instructions: Rotate: ← →, Thrust: ↑, Shoot: Spacebar, Score: 10 pts per pager
         </div>
       )}
+      
+      {/* Version display */}
+      <div style={{
+        position: "absolute",
+        bottom: "5px",
+        left: "5px",
+        fontSize: "10px",
+        fontFamily: "'Press Start 2P', cursive",
+        color: "rgba(255, 255, 255, 0.5)",
+        textShadow: "1px 1px 0px rgba(0, 0, 0, 0.5)",
+        opacity: isTransitioning ? 0 : 1,
+        transition: "opacity 0.3s",
+        zIndex: 1
+      }}>
+        v{VERSION}.{BUILD_NUMBER} ({BUILD_DATE})
+      </div>
 
       {/* Konami Code Activation Message */}
       {konamiMessageVisible && (
