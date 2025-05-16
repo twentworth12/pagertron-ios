@@ -17,6 +17,10 @@ function PagerTron() {
   const COLLISION_RADIUS = 20;
   const TRANSITION_DURATION = 2000;
   const SAFE_DISTANCE = 250; // Minimum distance from (640,360)
+  const PLAYER_EXPLOSION_DURATION = 1500; // Duration of player explosion animation in ms
+  const SCREEN_SHAKE_DURATION = 800; // Duration of screen shake effect in ms
+  const SCREEN_SHAKE_INTENSITY = 15; // Maximum pixels of screen displacement during shake
+  const PAGER_EXPLOSION_DURATION = 500; // Duration of pager explosion animation in ms
 
   // Helper: Generate random pager positions at least SAFE_DISTANCE away from (640,360)
   function generateRandomPagers(count) {
@@ -97,6 +101,24 @@ function PagerTron() {
   const [finalMissiles, setFinalMissiles] = useState([]);
   const [explosions, setExplosions] = useState([]);
   const [showHighScoreModal, setShowHighScoreModal] = useState(false);
+  
+  // Player death animation state
+  const [playerExploding, setPlayerExploding] = useState(false);
+  const [playerExplosionStage, setPlayerExplosionStage] = useState(0);
+  const [playerExplosionTime, setPlayerExplosionTime] = useState(0);
+  const [playerExplosionPosition, setPlayerExplosionPosition] = useState({ x: 0, y: 0 });
+  
+  // Screen shake effect
+  const [screenShaking, setScreenShaking] = useState(false);
+  const [screenShakeTime, setScreenShakeTime] = useState(0);
+  const [screenOffset, setScreenOffset] = useState({ x: 0, y: 0 });
+  
+  // Game over text effects
+  const [showGameOverText, setShowGameOverText] = useState(false);
+  const [gameOverTextColor, setGameOverTextColor] = useState('#ff0000');
+  
+  // Pager explosion animations
+  const [pagerExplosions, setPagerExplosions] = useState([]);
 
   const konamiCode = [
     "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown",
@@ -218,6 +240,17 @@ function PagerTron() {
               if (distance < collisionDistance) {
                 pagersToRemove.push(pager);
                 setMissiles(prev => prev.filter((_, index) => index !== missileIndex));
+                
+                // Create a pager explosion animation at the collision point
+                setPagerExplosions(prev => [...prev, {
+                  id: `explosion-${Date.now()}-${Math.random()}`,
+                  x: pagerCenterX,
+                  y: pagerCenterY,
+                  size: PAGER_SIZE,
+                  createdAt: Date.now(),
+                  stage: 1
+                }]);
+                
                 return true;
               }
               return false;
@@ -283,7 +316,18 @@ function PagerTron() {
 
         if (playerHit && !gameOver) {
           console.log("Player hit by pager!");
-          setGameOver(true);
+          // Don't trigger game over immediately - start explosion animation first
+          setPlayerExploding(true);
+          setPlayerExplosionTime(Date.now());
+          setPlayerExplosionPosition({ 
+            x: player.x + PLAYER_SIZE / 2, 
+            y: player.y + PLAYER_SIZE / 2 
+          });
+          setPlayerExplosionStage(1);
+          
+          // Trigger screen shake effect
+          setScreenShaking(true);
+          setScreenShakeTime(Date.now());
         }
 
         if (updatedPagers.length === 0) {
@@ -433,6 +477,129 @@ function PagerTron() {
 
   // Music toggle is now only available through the button click
   // Removed M key handling to improve performance
+
+  // Player explosion animation effect
+  useEffect(() => {
+    if (!playerExploding) return;
+    
+    // Create intervals for the different explosion stages
+    const explosionTimer = setInterval(() => {
+      const elapsedTime = Date.now() - playerExplosionTime;
+      const totalStages = 5; // Total number of explosion animation stages
+      
+      // Calculate current stage based on elapsed time
+      const stageTime = PLAYER_EXPLOSION_DURATION / totalStages;
+      const newStage = Math.min(Math.floor(elapsedTime / stageTime) + 1, totalStages);
+      
+      // Update stage if changed
+      if (newStage !== playerExplosionStage) {
+        setPlayerExplosionStage(newStage);
+      }
+      
+      // If we reached the final stage, show game over text and then trigger game over
+      if (elapsedTime >= PLAYER_EXPLOSION_DURATION) {
+        setPlayerExploding(false);
+        setPlayerExplosionStage(0);
+        setShowGameOverText(true);
+        
+        // Trigger game over after displaying text for a short time
+        setTimeout(() => {
+          setGameOver(true);
+        }, 1500); // Show game over text for 1.5 seconds before finale
+        
+        clearInterval(explosionTimer);
+      }
+    }, 50);
+    
+    return () => clearInterval(explosionTimer);
+  }, [playerExploding, playerExplosionTime, playerExplosionStage, PLAYER_EXPLOSION_DURATION]);
+  
+  // Screen shake effect
+  useEffect(() => {
+    if (!screenShaking) {
+      // Reset screen offset when not shaking
+      setScreenOffset({ x: 0, y: 0 });
+      return;
+    }
+    
+    // Screen shake animation
+    const shakeTimer = setInterval(() => {
+      const elapsedTime = Date.now() - screenShakeTime;
+      
+      if (elapsedTime >= SCREEN_SHAKE_DURATION) {
+        // Stop shaking after duration
+        setScreenShaking(false);
+        setScreenOffset({ x: 0, y: 0 });
+        clearInterval(shakeTimer);
+        return;
+      }
+      
+      // Calculate intensity based on time elapsed (starts strong, gets weaker)
+      const progress = elapsedTime / SCREEN_SHAKE_DURATION; // 0 to 1
+      const decayFactor = 1 - progress; // 1 to 0
+      const intensity = SCREEN_SHAKE_INTENSITY * decayFactor;
+      
+      // Generate random offsets for x and y
+      const randomX = (Math.random() * 2 - 1) * intensity;
+      const randomY = (Math.random() * 2 - 1) * intensity;
+      
+      // Update screen offset
+      setScreenOffset({ 
+        x: Math.round(randomX), 
+        y: Math.round(randomY) 
+      });
+    }, 50); // Update shake 20 times per second
+    
+    return () => clearInterval(shakeTimer);
+  }, [screenShaking, screenShakeTime, SCREEN_SHAKE_DURATION, SCREEN_SHAKE_INTENSITY]);
+
+  // Handle game over text flashing effect
+  useEffect(() => {
+    if (!showGameOverText) return;
+    
+    // Classic arcade color cycling: red -> orange -> yellow
+    const colors = ['#ff0000', '#ff6600', '#ffcc00', '#ff6600'];
+    let colorIndex = 0;
+    
+    const flashingInterval = setInterval(() => {
+      colorIndex = (colorIndex + 1) % colors.length;
+      setGameOverTextColor(colors[colorIndex]);
+    }, 250); // Flash 4 times per second
+    
+    return () => clearInterval(flashingInterval);
+  }, [showGameOverText]);
+
+  // Hide game over text when finale starts
+  useEffect(() => {
+    if (finaleActive) {
+      setShowGameOverText(false);
+    }
+  }, [finaleActive]);
+  
+  // Manage pager explosion animations
+  useEffect(() => {
+    if (pagerExplosions.length === 0) return;
+    
+    const explosionTimer = setInterval(() => {
+      const currentTime = Date.now();
+      
+      // Update explosion stages and remove completed explosions
+      setPagerExplosions(prevExplosions => 
+        prevExplosions
+          .map(explosion => {
+            const elapsed = currentTime - explosion.createdAt;
+            // Calculate stage (1-4) based on elapsed time
+            const stage = Math.min(Math.floor((elapsed / PAGER_EXPLOSION_DURATION) * 4) + 1, 4);
+            return { ...explosion, stage };
+          })
+          .filter(explosion => 
+            currentTime - explosion.createdAt < PAGER_EXPLOSION_DURATION
+          )
+      );
+    }, 50);
+    
+    return () => clearInterval(explosionTimer);
+  }, [pagerExplosions, PAGER_EXPLOSION_DURATION]);
 
   // When the player dies, trigger the finale effect immediately with no delay
   useEffect(() => {
@@ -800,7 +967,9 @@ function PagerTron() {
       position: "relative",
       margin: "auto",
       border: "5px solid white",
-      overflow: "hidden"
+      overflow: "hidden",
+      transform: screenShaking ? `translate(${screenOffset.x}px, ${screenOffset.y}px)` : 'none',
+      transition: screenShaking ? 'none' : 'transform 0.1s ease-out'
     }}>
       {!gameStarted && (
         <GameMusic
@@ -963,6 +1132,111 @@ function PagerTron() {
           animation: "pulse 0.5s infinite alternate"
         }}>
           Konami Code Activated!
+        </div>
+      )}
+      
+      {/* Pager Explosions - Classic 80s Arcade Style */}
+      {pagerExplosions.map(explosion => (
+        <div
+          key={explosion.id}
+          style={{
+            position: "absolute",
+            left: explosion.x - explosion.size/2,
+            top: explosion.y - explosion.size/2,
+            width: explosion.size,
+            height: explosion.size,
+            zIndex: 30,
+            pointerEvents: "none"
+          }}
+        >
+          {/* Stage 1: Initial Flash */}
+          {explosion.stage >= 1 && (
+            <div style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              width: explosion.size * 0.5,
+              height: explosion.size * 0.5,
+              borderRadius: "50%",
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              boxShadow: "0 0 10px #ffffff",
+              opacity: explosion.stage === 1 ? 1 : 0.7
+            }} />
+          )}
+          
+          {/* Stage 2: Pixel Explosion Particles */}
+          {explosion.stage >= 2 && (
+            <>
+              {/* Classic pixel explosion pattern */}
+              {[0, 1, 2, 3, 4, 5, 6, 7].map(i => {
+                const angle = (i / 8) * Math.PI * 2;
+                const distance = explosion.stage >= 3 
+                  ? explosion.size * 0.4
+                  : explosion.size * 0.25;
+                  
+                return (
+                  <div
+                    key={`particle-${i}`}
+                    style={{
+                      position: "absolute",
+                      width: explosion.size * 0.15,
+                      height: explosion.size * 0.15,
+                      backgroundColor: i % 2 ? "#ffaa00" : "#ff5500",
+                      top: `calc(50% + ${Math.sin(angle) * distance}px)`,
+                      left: `calc(50% + ${Math.cos(angle) * distance}px)`,
+                      transform: "translate(-50%, -50%)",
+                      clipPath: i % 2 
+                        ? "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)" // Diamond
+                        : "polygon(50% 0%, 100% 100%, 0% 100%)", // Triangle
+                      boxShadow: "0 0 5px rgba(255, 100, 0, 0.8)",
+                      opacity: explosion.stage >= 3 
+                        ? Math.max(1 - (explosion.stage - 2) * 0.3, 0.3)
+                        : 1
+                    }}
+                  />
+                );
+              })}
+            </>
+          )}
+          
+          {/* Stage 3-4: Expanding ring */}
+          {explosion.stage >= 3 && (
+            <div style={{
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
+              width: explosion.size * (0.5 + (explosion.stage - 2) * 0.2),
+              height: explosion.size * (0.5 + (explosion.stage - 2) * 0.2),
+              borderRadius: "50%",
+              border: "2px solid rgba(255, 60, 0, 0.7)",
+              backgroundColor: "transparent",
+              opacity: Math.max(1 - (explosion.stage - 2) * 0.5, 0.1),
+              boxShadow: "0 0 10px rgba(255, 100, 0, 0.5)",
+            }} />
+          )}
+        </div>
+      ))}
+      
+      {/* Classic Arcade Game Over Text */}
+      {showGameOverText && (
+        <div style={{
+          position: "absolute",
+          top: "40%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          fontSize: "56px",
+          fontFamily: "'Press Start 2P', cursive",
+          color: gameOverTextColor,
+          textShadow: `0 0 10px ${gameOverTextColor}, 0 0 20px ${gameOverTextColor}, 0 0 30px rgba(255, 255, 255, 0.8)`,
+          letterSpacing: "4px",
+          fontWeight: "bold",
+          textTransform: "uppercase",
+          zIndex: 50,
+          animation: "pulse 0.3s infinite alternate"
+        }}>
+          Game Over
         </div>
       )}
 
@@ -1143,8 +1417,8 @@ function PagerTron() {
         </>
       )}
 
-      {/* Player: Only shown if game is started and not over */}
-      {gameStarted && !gameOver && (
+      {/* Player: Only shown if game is started, not exploding, and not over */}
+      {gameStarted && !gameOver && !playerExploding && (
         <div
           style={{
             position: "absolute",
@@ -1224,6 +1498,125 @@ function PagerTron() {
               </div>
             )}
           </div>
+        </div>
+      )}
+      
+      {/* Player Explosion Animation */}
+      {playerExploding && (
+        <div
+          style={{
+            position: "absolute",
+            left: `${playerExplosionPosition.x - 75}px`, // Center the explosion
+            top: `${playerExplosionPosition.y - 75}px`,
+            width: "150px",
+            height: "150px",
+            zIndex: 10,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center"
+          }}
+        >
+          {/* Stage 1: Initial flash */}
+          {playerExplosionStage >= 1 && (
+            <div
+              style={{
+                position: "absolute",
+                width: `${playerExplosionStage === 1 ? '60px' : '50px'}`,
+                height: `${playerExplosionStage === 1 ? '60px' : '50px'}`,
+                borderRadius: "50%",
+                backgroundColor: `rgba(255, 255, 255, ${playerExplosionStage === 1 ? 0.9 : 0.7})`,
+                boxShadow: "0 0 20px rgba(255, 255, 255, 1)",
+                opacity: playerExplosionStage === 1 ? 1 : 0.7
+              }}
+            />
+          )}
+          
+          {/* Stage 2: First ring of explosion */}
+          {playerExplosionStage >= 2 && (
+            <div
+              style={{
+                position: "absolute",
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                border: "2px solid rgba(255, 150, 0, 0.9)",
+                backgroundColor: "rgba(255, 100, 0, 0.6)",
+                boxShadow: "0 0 20px rgba(255, 100, 0, 0.8)",
+                opacity: playerExplosionStage === 2 ? 1 : 0.8
+              }}
+            />
+          )}
+          
+          {/* Stage 3: Expanding ring with debris */}
+          {playerExplosionStage >= 3 && (
+            <>
+              <div
+                style={{
+                  position: "absolute",
+                  width: "100px",
+                  height: "100px",
+                  borderRadius: "50%",
+                  border: "3px solid rgba(255, 80, 0, 0.9)",
+                  backgroundColor: "rgba(255, 60, 0, 0.5)",
+                  boxShadow: "0 0 30px rgba(255, 60, 0, 0.8)",
+                  opacity: playerExplosionStage === 3 ? 1 : 0.6
+                }}
+              />
+              {/* Debris particles */}
+              {Array.from({ length: 8 }).map((_, i) => {
+                const angle = (i / 8) * Math.PI * 2;
+                const distance = playerExplosionStage >= 4 ? 60 : 40;
+                return (
+                  <div
+                    key={`debris-${i}`}
+                    style={{
+                      position: "absolute",
+                      width: "10px",
+                      height: "10px",
+                      borderRadius: "50%",
+                      backgroundColor: i % 2 ? "#ff5500" : "#ffaa00",
+                      boxShadow: "0 0 10px rgba(255, 100, 0, 0.8)",
+                      left: `calc(50% + ${Math.cos(angle) * distance}px)`,
+                      top: `calc(50% + ${Math.sin(angle) * distance}px)`,
+                      opacity: 0.9
+                    }}
+                  />
+                );
+              })}
+            </>
+          )}
+          
+          {/* Stage 4: Largest explosion ring */}
+          {playerExplosionStage >= 4 && (
+            <div
+              style={{
+                position: "absolute",
+                width: "140px",
+                height: "140px",
+                borderRadius: "50%",
+                border: "3px solid rgba(255, 40, 0, 0.8)",
+                backgroundColor: "rgba(255, 30, 0, 0.3)",
+                boxShadow: "0 0 40px rgba(255, 60, 0, 0.7)",
+                opacity: playerExplosionStage === 4 ? 0.9 : 0.5
+              }}
+            />
+          )}
+          
+          {/* Stage 5: Final fading ring */}
+          {playerExplosionStage >= 5 && (
+            <div
+              style={{
+                position: "absolute",
+                width: "150px",
+                height: "150px",
+                borderRadius: "50%",
+                border: "2px solid rgba(255, 30, 0, 0.5)",
+                backgroundColor: "rgba(255, 20, 0, 0.1)",
+                boxShadow: "0 0 30px rgba(255, 30, 0, 0.3)",
+                opacity: 0.4
+              }}
+            />
+          )}
         </div>
       )}
 
