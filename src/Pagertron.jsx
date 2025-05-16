@@ -816,10 +816,11 @@ function PagerTron() {
     return () => clearInterval(updateInterval);
   }, [finaleActive, SCREEN_WIDTH, SCREEN_HEIGHT, KONAMI_MISSILE_SIZE]);
 
-  // When gameOver and finaleActive are true, use an optimized finale effect with guaranteed completion
+  // When gameOver and finaleActive are true, transition directly to high score screen
+  // 4th wipe (final explosions) has been removed to simplify the death sequence
   useEffect(() => {
     if (gameOver && finaleActive) {
-      console.log("Finale and game over both active, starting final sequence");
+      console.log("Finale and game over both active, starting simplified sequence");
       
       // GUARANTEED COMPLETION FALLBACK
       // This ensures that no matter what, the player sees the high score screen eventually
@@ -829,63 +830,33 @@ function PagerTron() {
         setShowHighScoreModal(true);
       }, 8000); // 8 second absolute maximum before forcing transition
       
-      // Normal finale sequence
-      const timer = setTimeout(() => {
-        console.log("Creating final explosions");
-        // Create one final massive explosion effect before transitioning
-        const centerX = SCREEN_WIDTH / 2;
-        const centerY = SCREEN_HEIGHT / 2;
-
-        // Create all explosions in one batch update for better performance
-        const finalExplosions = [];
-
-        // Create fewer explosions for better performance
-        for (let i = 0; i < 6; i++) {
-          const angle = (i / 6) * Math.PI * 2; // Evenly spaced angles
-          const distance = 150;
-          finalExplosions.push({
-            x: centerX + Math.cos(angle) * distance,
-            y: centerY + Math.sin(angle) * distance,
-            size: 150,
-            createdAt: Date.now()
-          });
-        }
-
-        // Single state update
-        setExplosions(prev => [...prev, ...finalExplosions]);
-
-        // Show high score modal after finale effect with a more reliable approach
-        const highScoreTimer = setTimeout(() => {
-          console.log("Normal finale sequence complete - showing high score modal");
-          
-          // Clear the guaranteed timeout since we're completing normally
-          clearTimeout(guaranteedFinaleCompletionTimeout);
-          
-          // Ensure we transition properly by setting states in strict sequence
-          setFinaleActive(false);
-          
-          // Use requestAnimationFrame to ensure state update has time to render
-          // before showing the modal (more reliable than setTimeout)
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              console.log("Setting high score modal visibility to true");
-              setShowHighScoreModal(true);
-            });
-          });
-        }, 1000); // Slightly longer to ensure explosions are visible
+      // Simplified finale sequence - skip final explosions and go directly to high score
+      const transitionTimer = setTimeout(() => {
+        console.log("Simplified finale sequence - transitioning directly to high score screen");
         
-        return () => {
-          clearTimeout(highScoreTimer);
-          clearTimeout(guaranteedFinaleCompletionTimeout);
-        };
-      }, 2500);
-
+        // Show high score modal with a more reliable approach
+        // Clear the guaranteed timeout since we're completing normally
+        clearTimeout(guaranteedFinaleCompletionTimeout);
+        
+        // Ensure we transition properly by setting states in strict sequence
+        setFinaleActive(false);
+        
+        // Use requestAnimationFrame to ensure state update has time to render
+        // before showing the modal (more reliable than setTimeout)
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            console.log("Setting high score modal visibility to true");
+            setShowHighScoreModal(true);
+          });
+        });
+      }, 2500); // Same timing as before, but without the explosions
+      
       return () => {
-        clearTimeout(timer);
+        clearTimeout(transitionTimer);
         clearTimeout(guaranteedFinaleCompletionTimeout);
       };
     }
-  }, [gameOver, finaleActive, SCREEN_WIDTH, SCREEN_HEIGHT]);
+  }, [gameOver, finaleActive]);
 
   const handleCloseHighScoreModal = () => {
     setShowHighScoreModal(false);
