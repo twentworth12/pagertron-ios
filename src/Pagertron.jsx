@@ -1687,28 +1687,30 @@ function PagerTron() {
               height: "15px",
               overflow: "visible"
             }}>
-              {/* Triangle shape */}
+              {/* Triangle shape - centered */}
               <div style={{
                 position: "absolute",
                 top: 0,
-                left: 0,
+                left: "50%",
                 width: 0,
                 height: 0,
                 borderLeft: "10px solid transparent",
                 borderRight: "10px solid transparent",
                 borderBottom: "15px solid #FCF2EE",
-                filter: "drop-shadow(0 0 5px #D77655)"
+                filter: "drop-shadow(0 0 5px #D77655)",
+                transform: "translateX(-50%)" // This centers the triangle
               }} />
               
-              {/* Arrow glow effect */}
+              {/* Arrow glow effect - centered */}
               <div style={{
                 position: "absolute",
                 top: "0",
-                left: "0",
+                left: "50%",
                 width: "20px",
                 height: "15px",
                 background: "radial-gradient(circle, rgba(252, 242, 238, 0.4) 0%, rgba(252, 242, 238, 0) 70%)",
-                zIndex: -1
+                zIndex: -1,
+                transform: "translateX(-50%)" // Center the glow effect too
               }} />
             </div>
             
