@@ -55,7 +55,7 @@ function PagerTron() {
         position: "relative"
       }}>
         <GameMusic
-          key={`music-mobile-${Date.now()}`}
+          key="music-mobile"
           isGameStarted={false}
           isGameOver={false}
         />
@@ -909,7 +909,7 @@ function PagerTron() {
           <div className="crt-rgb-shift"></div>
         </div>
         <GameMusic
-          key={`music-highscore-${Date.now()}`}
+          key="music-highscore"
           isGameStarted={false}
           isGameOver={gameOver}
         />
@@ -963,7 +963,7 @@ function PagerTron() {
           <div className="crt-rgb-shift"></div>
         </div>
         <GameMusic
-          key={`music-finalscreen-${Date.now()}`}
+          key="music-finalscreen"
           isGameStarted={false}
           isGameOver={true}
         />
@@ -1100,7 +1100,7 @@ function PagerTron() {
       </div>
       {!gameStarted && (
         <GameMusic
-          key={`music-menu-${Date.now()}`}
+          key="music-menu"
           isGameStarted={false}
           isGameOver={gameOver}
         />
