@@ -491,7 +491,7 @@ function PagerTron() {
   // Music toggle is now only available through the button click
   // Removed M key handling to improve performance
 
-  // Player explosion animation effect
+  // Player explosion animation effect - with more reliable transition
   useEffect(() => {
     if (!playerExploding) return;
     
@@ -515,12 +515,18 @@ function PagerTron() {
         setPlayerExplosionStage(0);
         setShowGameOverText(true);
         
+        // Clear this timer immediately
+        clearInterval(explosionTimer);
+        
         // Trigger game over after displaying text for a short time
-        setTimeout(() => {
+        // Use a guaranteed timeout to ensure transition happens
+        const gameOverTimeout = setTimeout(() => {
+          console.log("Triggering game over from explosion animation");
           setGameOver(true);
         }, 1500); // Show game over text for 1.5 seconds before finale
         
-        clearInterval(explosionTimer);
+        // Make sure the timeout is cleared if component unmounts
+        return () => clearTimeout(gameOverTimeout);
       }
     }, 50);
     
@@ -635,10 +641,18 @@ function PagerTron() {
   // When the player dies, trigger the finale effect immediately with no delay
   useEffect(() => {
     if (gameOver) {
-      // Start finale immediately without delay
+      console.log("Game over state detected, activating finale");
+      // Clear any existing missiles
       setMissiles([]);
-      setFinaleActive(true);
-      // No timeout needed anymore
+      
+      // Ensure finale is triggered with a reliable timeout
+      // This prevents any race conditions or render cycle issues
+      const finaleTimeout = setTimeout(() => {
+        console.log("Activating finale effect");
+        setFinaleActive(true);
+      }, 50); // Very short delay to ensure state updates properly
+      
+      return () => clearTimeout(finaleTimeout);
     }
   }, [gameOver]);
 
@@ -771,8 +785,11 @@ function PagerTron() {
   // When gameOver and finaleActive are true, use an optimized finale effect
   useEffect(() => {
     if (gameOver && finaleActive) {
+      console.log("Finale and game over both active, starting final sequence");
+      
       // Use a much shorter time for the screen clearing effect
       const timer = setTimeout(() => {
+        console.log("Creating final explosions");
         // Create one final massive explosion effect before transitioning
         const centerX = SCREEN_WIDTH / 2;
         const centerY = SCREEN_HEIGHT / 2;
@@ -795,11 +812,19 @@ function PagerTron() {
         // Single state update
         setExplosions(prev => [...prev, ...finalExplosions]);
 
-        // Show high score modal after finale effect
-        setTimeout(() => {
+        // Show high score modal after finale effect with a more reliable approach
+        const highScoreTimer = setTimeout(() => {
+          console.log("Showing high score modal");
+          // Ensure we transition properly by updating states in sequence
           setFinaleActive(false);
-          setShowHighScoreModal(true); // Show high score modal first
-        }, 500);
+          
+          // Small delay to ensure state updates before showing modal
+          setTimeout(() => {
+            setShowHighScoreModal(true); // Show high score modal
+          }, 50);
+        }, 800); // Slightly longer to ensure explosions are visible
+        
+        return () => clearTimeout(highScoreTimer);
       }, 2500);
 
       return () => clearTimeout(timer);
@@ -1391,7 +1416,7 @@ function PagerTron() {
             animation: "digital-glitch 0.2s infinite"
           }}></div>
 
-          {/* Level text with enhanced effects */}
+          {/* Level text with enhanced effects - no repetition */}
           <div style={{
             fontSize: "64px",
             fontFamily: "'Press Start 2P', cursive",
@@ -1402,8 +1427,10 @@ function PagerTron() {
             position: "relative",
             zIndex: 10
           }}>
+            {/* Color offset shadows for retro effect */}
             <span style={{ 
               position: "absolute", 
+              content: "LEVEL " + (level + 1),
               color: "#ff00ff", 
               opacity: 0.5, 
               left: "-2px", 
@@ -1414,6 +1441,7 @@ function PagerTron() {
             </span>
             <span style={{ 
               position: "absolute", 
+              content: "LEVEL " + (level + 1),
               color: "#00ffff", 
               opacity: 0.5, 
               left: "2px", 
@@ -1422,6 +1450,7 @@ function PagerTron() {
             }}>
               LEVEL {level + 1}
             </span>
+            {/* Main text - already displaying the level number once */}
             LEVEL {level + 1}
           </div>
 
@@ -1636,17 +1665,16 @@ function PagerTron() {
             transition: "transform 0.1s ease",
             position: "relative"
           }}>
-            {/* Player shield glow effect */}
+            {/* Player glow effect without border box */}
             <div style={{
               position: "absolute",
-              width: "52px",
-              height: "52px",
-              top: "-3.5px",
-              left: "-3.5px",
-              borderRadius: "14px",
-              backgroundColor: "rgba(215, 118, 85, 0.1)",
-              border: "2px solid rgba(252, 242, 238, 0.5)",
-              boxShadow: "0 0 12px rgba(215, 118, 85, 0.7)",
+              width: "60px",
+              height: "60px",
+              top: "-7.5px",
+              left: "-7.5px",
+              borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(215, 118, 85, 0.2) 0%, rgba(215, 118, 85, 0) 70%)",
+              boxShadow: "0 0 15px rgba(215, 118, 85, 0.4)",
               animation: "pulse 1.5s infinite alternate",
               zIndex: -1
             }} />
