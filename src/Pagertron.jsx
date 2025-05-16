@@ -1675,7 +1675,7 @@ function PagerTron() {
               }}
             />
             
-            {/* Enhanced direction indicator with animation - properly centered */}
+            {/* Simplified direction indicator with animation - absolute positioning */}
             <div style={{
               position: "absolute",
               top: "-18px",
@@ -1683,25 +1683,28 @@ function PagerTron() {
               transform: "translateX(-50%)",
               zIndex: 2,
               animation: "direction-pulse 1s infinite",
-              display: "flex",
-              justifyContent: "center",
-              width: "20px"
+              width: "20px",
+              height: "15px",
+              overflow: "visible"
             }}>
+              {/* Triangle shape */}
               <div style={{
-                width: "0",
-                height: "0",
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: 0,
+                height: 0,
                 borderLeft: "10px solid transparent",
                 borderRight: "10px solid transparent",
                 borderBottom: "15px solid #FCF2EE",
-                filter: "drop-shadow(0 0 5px #D77655)",
-                position: "relative"
+                filter: "drop-shadow(0 0 5px #D77655)"
               }} />
               
               {/* Arrow glow effect */}
               <div style={{
                 position: "absolute",
                 top: "0",
-                left: "-10px",
+                left: "0",
                 width: "20px",
                 height: "15px",
                 background: "radial-gradient(circle, rgba(252, 242, 238, 0.4) 0%, rgba(252, 242, 238, 0) 70%)",
