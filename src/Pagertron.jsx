@@ -1416,41 +1416,26 @@ function PagerTron() {
             animation: "digital-glitch 0.2s infinite"
           }}></div>
 
-          {/* Level text with enhanced effects - no repetition */}
-          <div style={{
-            fontSize: "64px",
-            fontFamily: "'Press Start 2P', cursive",
-            color: "#00ff00",
-            textShadow: "0 0 10px #00ff00, 0 0 20px #ff00ff, 0 0 30px #ff00ff",
-            transform: "scale(1, 1.2)",
-            animation: "pixel-shift 0.5s step-end infinite",
-            position: "relative",
-            zIndex: 10
-          }}>
-            {/* Color offset shadows for retro effect */}
-            <span style={{ 
-              position: "absolute", 
-              content: "LEVEL " + (level + 1),
-              color: "#ff00ff", 
-              opacity: 0.5, 
-              left: "-2px", 
-              top: "2px", 
-              zIndex: 9 
-            }}>
-              LEVEL {level + 1}
-            </span>
-            <span style={{ 
-              position: "absolute", 
-              content: "LEVEL " + (level + 1),
-              color: "#00ffff", 
-              opacity: 0.5, 
-              left: "2px", 
-              top: "-2px", 
-              zIndex: 9 
-            }}>
-              LEVEL {level + 1}
-            </span>
-            {/* Main text - already displaying the level number once */}
+          {/* Level text with enhanced effects - using pseudo-element approach */}
+          <div 
+            style={{
+              fontSize: "64px",
+              fontFamily: "'Press Start 2P', cursive",
+              color: "#00ff00",
+              textShadow: `
+                0 0 10px #00ff00, 
+                0 0 20px #ff00ff, 
+                0 0 30px #ff00ff,
+                -2px 2px 0 #ff00ff, 
+                2px -2px 0 #00ffff
+              `,
+              transform: "scale(1, 1.2)",
+              animation: "pixel-shift 0.5s step-end infinite",
+              position: "relative",
+              zIndex: 10
+            }}
+          >
+            {/* Just the main text - no duplicate elements */}
             LEVEL {level + 1}
           </div>
 
@@ -1690,14 +1675,17 @@ function PagerTron() {
               }}
             />
             
-            {/* Enhanced direction indicator with animation */}
+            {/* Enhanced direction indicator with animation - properly centered */}
             <div style={{
               position: "absolute",
               top: "-18px",
               left: "50%",
               transform: "translateX(-50%)",
               zIndex: 2,
-              animation: "direction-pulse 1s infinite"
+              animation: "direction-pulse 1s infinite",
+              display: "flex",
+              justifyContent: "center",
+              width: "20px"
             }}>
               <div style={{
                 width: "0",
