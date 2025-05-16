@@ -42,7 +42,7 @@ function HighScoreTicker() {
       <div
         style={{
           position: 'absolute',
-          bottom: '35%',
+          bottom: '12%',
           width: '100%',
           textAlign: 'center',
           color: 'white',
@@ -59,7 +59,7 @@ function HighScoreTicker() {
       {/* Simple marquee element instead of custom animation */}
       <div style={{
         position: 'absolute',
-        bottom: '30%',
+        bottom: '7%',
         width: '100%',
         height: '30px',
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
