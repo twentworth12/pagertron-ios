@@ -61,7 +61,7 @@ function HighScoreTicker() {
           letterSpacing: '1px',
         }}
       >
-        HIGH SCORES
+        ANTHROPIC'S HIGH SCORES
       </div>
       
       <div
