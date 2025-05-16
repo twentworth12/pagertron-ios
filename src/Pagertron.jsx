@@ -120,6 +120,9 @@ function PagerTron() {
   
   // Pager explosion animations
   const [pagerExplosions, setPagerExplosions] = useState([]);
+  
+  // Floating score indicators
+  const [floatingScores, setFloatingScores] = useState([]);
 
   const konamiCode = [
     "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown",
@@ -250,6 +253,15 @@ function PagerTron() {
                   size: PAGER_SIZE,
                   createdAt: Date.now(),
                   stage: 1
+                }]);
+                
+                // Add floating score indicator
+                setFloatingScores(prev => [...prev, {
+                  id: `score-${Date.now()}-${Math.random()}`,
+                  x: pagerCenterX,
+                  y: pagerCenterY - 20, // Start slightly above the explosion
+                  value: 10,
+                  createdAt: Date.now()
                 }]);
                 
                 return true;
@@ -601,6 +613,24 @@ function PagerTron() {
     
     return () => clearInterval(explosionTimer);
   }, [pagerExplosions, PAGER_EXPLOSION_DURATION]);
+  
+  // Manage floating score indicators
+  useEffect(() => {
+    if (floatingScores.length === 0) return;
+    
+    const scoreTimer = setInterval(() => {
+      const currentTime = Date.now();
+      
+      // Remove scores after animation duration (1 second)
+      setFloatingScores(prevScores => 
+        prevScores.filter(score => 
+          currentTime - score.createdAt < 1000
+        )
+      );
+    }, 100);
+    
+    return () => clearInterval(scoreTimer);
+  }, [floatingScores]);
 
   // When the player dies, trigger the finale effect immediately with no delay
   useEffect(() => {
@@ -820,6 +850,12 @@ function PagerTron() {
         border: "5px solid white",
         position: "relative"
       }}>
+        {/* CRT overlay effects */}
+        <div className="crt-overlay">
+          <div className="crt-scanlines"></div>
+          <div className="crt-vignette"></div>
+          <div className="crt-rgb-shift"></div>
+        </div>
         <GameMusic
           key={`music-highscore-${Date.now()}`}
           isGameStarted={false}
@@ -868,6 +904,12 @@ function PagerTron() {
         position: "relative",
         padding: "20px"
       }}>
+        {/* CRT overlay effects */}
+        <div className="crt-overlay">
+          <div className="crt-scanlines"></div>
+          <div className="crt-vignette"></div>
+          <div className="crt-rgb-shift"></div>
+        </div>
         <GameMusic
           key={`music-finalscreen-${Date.now()}`}
           isGameStarted={false}
@@ -998,6 +1040,12 @@ function PagerTron() {
       transform: screenShaking ? `translate(${screenOffset.x}px, ${screenOffset.y}px)` : 'none',
       transition: screenShaking ? 'none' : 'transform 0.1s ease-out'
     }}>
+      {/* CRT overlay effects */}
+      <div className="crt-overlay">
+        <div className="crt-scanlines"></div>
+        <div className="crt-vignette"></div>
+        <div className="crt-rgb-shift"></div>
+      </div>
       {!gameStarted && (
         <GameMusic
           key={`music-menu-${Date.now()}`}
@@ -1171,6 +1219,30 @@ function PagerTron() {
         </div>
       )}
       
+      {/* Floating Score Indicators */}
+      {floatingScores.map(score => (
+        <div
+          key={score.id}
+          style={{
+            position: "absolute",
+            left: score.x,
+            top: score.y,
+            zIndex: 40,
+            pointerEvents: "none",
+            animation: "float-up 1s forwards",
+            fontFamily: "'Press Start 2P', cursive",
+            fontSize: "20px",
+            color: "#ffff00",
+            textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 8px #ff8800",
+            whiteSpace: "nowrap",
+            fontWeight: "bold",
+            transform: "translateX(-50%)"
+          }}
+        >
+          +{score.value}
+        </div>
+      ))}
+      
       {/* Pager Explosions - Classic 80s Arcade Style */}
       {pagerExplosions.map(explosion => (
         <div
@@ -1276,7 +1348,7 @@ function PagerTron() {
         </div>
       )}
 
-      {/* Transition Screen - full 80s arcade effect */}
+      {/* Enhanced Transition Screen - full 80s arcade effect */}
       {isTransitioning && (
         <div style={{
           position: "absolute",
@@ -1289,8 +1361,8 @@ function PagerTron() {
           justifyContent: "center",
           alignItems: "center",
           flexDirection: "column",
-          animation: "pulse 0.5s infinite alternate, crt-flicker 0.5s linear forwards",
-          zIndex: 2,
+          animation: "pulse 0.5s infinite alternate, crt-flicker 0.5s linear forwards, transition-color-cycle 2s infinite alternate",
+          zIndex: 20,
           overflow: "hidden"
         }}>
           {/* Scanline effect */}
@@ -1307,38 +1379,109 @@ function PagerTron() {
             opacity: 0.3
           }}></div>
 
-          {/* Level text */}
+          {/* Digital glitch effect wrapper */}
+          <div style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 5,
+            opacity: 0.15,
+            animation: "digital-glitch 0.2s infinite"
+          }}></div>
+
+          {/* Level text with enhanced effects */}
           <div style={{
             fontSize: "64px",
             fontFamily: "'Press Start 2P', cursive",
             color: "#00ff00",
             textShadow: "0 0 10px #00ff00, 0 0 20px #ff00ff, 0 0 30px #ff00ff",
             transform: "scale(1, 1.2)",
-            animation: "pixel-shift 0.5s step-end infinite"
+            animation: "pixel-shift 0.5s step-end infinite",
+            position: "relative",
+            zIndex: 10
           }}>
+            <span style={{ 
+              position: "absolute", 
+              color: "#ff00ff", 
+              opacity: 0.5, 
+              left: "-2px", 
+              top: "2px", 
+              zIndex: 9 
+            }}>
+              LEVEL {level + 1}
+            </span>
+            <span style={{ 
+              position: "absolute", 
+              color: "#00ffff", 
+              opacity: 0.5, 
+              left: "2px", 
+              top: "-2px", 
+              zIndex: 9 
+            }}>
+              LEVEL {level + 1}
+            </span>
             LEVEL {level + 1}
           </div>
 
-          {/* Get ready text */}
+          {/* Get ready text with enhanced effects */}
           <div style={{
             fontSize: "24px",
             fontFamily: "'Press Start 2P', cursive",
             color: "#ffffff",
             textShadow: "0 0 5px #ffffff, 0 0 10px #00ffff",
             marginTop: "20px",
-            animation: "blink 0.5s step-end infinite"
+            animation: "blink 0.5s step-end infinite",
+            zIndex: 10
           }}>
             GET READY!
           </div>
 
-          {/* Typical 80s patterns */}
+          {/* Top bar - horizontal stripe */}
+          <div style={{
+            position: "absolute",
+            top: "50px",
+            width: "100%",
+            height: "5px",
+            background: "repeating-linear-gradient(90deg, #ff00ff, #ff00ff 10px, #00ffff 10px, #00ffff 20px)",
+            zIndex: 1,
+            animation: "horizontal-wipe 0.5s cubic-bezier(0.7, 0, 0.3, 1) forwards"
+          }}></div>
+
+          {/* Bottom bar - horizontal stripe */}
           <div style={{
             position: "absolute",
             bottom: "50px",
-            width: "80%",
-            height: "20px",
-            background: "repeating-linear-gradient(90deg, #ff00ff, #ff00ff 10px, #00ffff 10px, #00ffff 20px)",
-            zIndex: 1
+            width: "100%",
+            height: "5px",
+            background: "repeating-linear-gradient(90deg, #00ffff, #00ffff 10px, #ff00ff 10px, #ff00ff 20px)",
+            zIndex: 1,
+            animation: "horizontal-wipe 0.5s cubic-bezier(0.7, 0, 0.3, 1) forwards"
+          }}></div>
+
+          {/* Left vertical pattern */}
+          <div style={{
+            position: "absolute",
+            left: "30px",
+            top: "50px",
+            bottom: "50px", 
+            width: "5px",
+            background: "repeating-linear-gradient(0deg, #ffff00, #ffff00 10px, transparent 10px, transparent 20px)",
+            zIndex: 1,
+            animation: "screen-wipe 0.8s cubic-bezier(0.7, 0, 0.3, 1) forwards"
+          }}></div>
+
+          {/* Right vertical pattern */}
+          <div style={{
+            position: "absolute",
+            right: "30px",
+            top: "50px",
+            bottom: "50px", 
+            width: "5px",
+            background: "repeating-linear-gradient(0deg, #ffff00, #ffff00 10px, transparent 10px, transparent 20px)",
+            zIndex: 1,
+            animation: "screen-wipe 0.8s cubic-bezier(0.7, 0, 0.3, 1) forwards"
           }}></div>
         </div>
       )}
