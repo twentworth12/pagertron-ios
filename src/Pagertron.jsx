@@ -327,8 +327,8 @@ function PagerTron() {
           return isCollision;
         });
 
-        if (playerHit && !gameOver) {
-          console.log("Player hit by pager!");
+        if (playerHit && !gameOver && !playerExploding) {
+          console.log("Player hit by pager! Starting death sequence");
           // Don't trigger game over immediately - start explosion animation first
           setPlayerExploding(true);
           setPlayerExplosionTime(Date.now());
@@ -341,6 +341,15 @@ function PagerTron() {
           // Trigger screen shake effect
           setScreenShaking(true);
           setScreenShakeTime(Date.now());
+          
+          // Also set up a direct fallback timeout to guarantee the game over happens
+          // This addresses rare edge cases where the animation effect might not proceed
+          setTimeout(() => {
+            if (!gameOver) {
+              console.log("FAILSAFE: Forcing game over state after player hit");
+              setGameOver(true);
+            }
+          }, PLAYER_EXPLOSION_DURATION + 3000); // Give plenty of time for normal sequence to complete
         }
 
         if (updatedPagers.length === 0) {
@@ -491,9 +500,26 @@ function PagerTron() {
   // Music toggle is now only available through the button click
   // Removed M key handling to improve performance
 
-  // Player explosion animation effect - with more reliable transition
+  // Player explosion animation effect - with guaranteed transition
   useEffect(() => {
     if (!playerExploding) return;
+    
+    console.log("Player explosion animation started");
+    
+    // Set up a guaranteed completion timeout
+    // This ensures the sequence completes even if other timers fail
+    const guaranteedCompletionTimeout = setTimeout(() => {
+      console.log("Guaranteed completion triggered");
+      setPlayerExploding(false);
+      setPlayerExplosionStage(0);
+      setShowGameOverText(true);
+      
+      // Then trigger game over after a delay
+      setTimeout(() => {
+        console.log("Game over triggered by guaranteed completion");
+        setGameOver(true);
+      }, 1500);
+    }, PLAYER_EXPLOSION_DURATION + 500); // Add buffer to normal duration
     
     // Create intervals for the different explosion stages
     const explosionTimer = setInterval(() => {
@@ -507,10 +533,12 @@ function PagerTron() {
       // Update stage if changed
       if (newStage !== playerExplosionStage) {
         setPlayerExplosionStage(newStage);
+        console.log(`Explosion stage updated to ${newStage}`);
       }
       
       // If we reached the final stage, show game over text and then trigger game over
       if (elapsedTime >= PLAYER_EXPLOSION_DURATION) {
+        console.log("Normal explosion sequence completed");
         setPlayerExploding(false);
         setPlayerExplosionStage(0);
         setShowGameOverText(true);
@@ -519,18 +547,24 @@ function PagerTron() {
         clearInterval(explosionTimer);
         
         // Trigger game over after displaying text for a short time
-        // Use a guaranteed timeout to ensure transition happens
         const gameOverTimeout = setTimeout(() => {
-          console.log("Triggering game over from explosion animation");
+          console.log("Triggering game over from normal explosion path");
           setGameOver(true);
         }, 1500); // Show game over text for 1.5 seconds before finale
+        
+        // Clear the guaranteed timeout since we completed normally
+        clearTimeout(guaranteedCompletionTimeout);
         
         // Make sure the timeout is cleared if component unmounts
         return () => clearTimeout(gameOverTimeout);
       }
     }, 50);
     
-    return () => clearInterval(explosionTimer);
+    // Make sure all timers are cleared if component unmounts
+    return () => {
+      clearInterval(explosionTimer);
+      clearTimeout(guaranteedCompletionTimeout);
+    };
   }, [playerExploding, playerExplosionTime, playerExplosionStage, PLAYER_EXPLOSION_DURATION]);
   
   // Screen shake effect
@@ -782,12 +816,20 @@ function PagerTron() {
     return () => clearInterval(updateInterval);
   }, [finaleActive, SCREEN_WIDTH, SCREEN_HEIGHT, KONAMI_MISSILE_SIZE]);
 
-  // When gameOver and finaleActive are true, use an optimized finale effect
+  // When gameOver and finaleActive are true, use an optimized finale effect with guaranteed completion
   useEffect(() => {
     if (gameOver && finaleActive) {
       console.log("Finale and game over both active, starting final sequence");
       
-      // Use a much shorter time for the screen clearing effect
+      // GUARANTEED COMPLETION FALLBACK
+      // This ensures that no matter what, the player sees the high score screen eventually
+      const guaranteedFinaleCompletionTimeout = setTimeout(() => {
+        console.log("GUARANTEED FINALE TRANSITION TRIGGERED - failsafe activated");
+        setFinaleActive(false);
+        setShowHighScoreModal(true);
+      }, 8000); // 8 second absolute maximum before forcing transition
+      
+      // Normal finale sequence
       const timer = setTimeout(() => {
         console.log("Creating final explosions");
         // Create one final massive explosion effect before transitioning
@@ -814,20 +856,34 @@ function PagerTron() {
 
         // Show high score modal after finale effect with a more reliable approach
         const highScoreTimer = setTimeout(() => {
-          console.log("Showing high score modal");
-          // Ensure we transition properly by updating states in sequence
+          console.log("Normal finale sequence complete - showing high score modal");
+          
+          // Clear the guaranteed timeout since we're completing normally
+          clearTimeout(guaranteedFinaleCompletionTimeout);
+          
+          // Ensure we transition properly by setting states in strict sequence
           setFinaleActive(false);
           
-          // Small delay to ensure state updates before showing modal
-          setTimeout(() => {
-            setShowHighScoreModal(true); // Show high score modal
-          }, 50);
-        }, 800); // Slightly longer to ensure explosions are visible
+          // Use requestAnimationFrame to ensure state update has time to render
+          // before showing the modal (more reliable than setTimeout)
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              console.log("Setting high score modal visibility to true");
+              setShowHighScoreModal(true);
+            });
+          });
+        }, 1000); // Slightly longer to ensure explosions are visible
         
-        return () => clearTimeout(highScoreTimer);
+        return () => {
+          clearTimeout(highScoreTimer);
+          clearTimeout(guaranteedFinaleCompletionTimeout);
+        };
       }, 2500);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(guaranteedFinaleCompletionTimeout);
+      };
     }
   }, [gameOver, finaleActive, SCREEN_WIDTH, SCREEN_HEIGHT]);
 
