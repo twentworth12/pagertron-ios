@@ -1675,42 +1675,36 @@ function PagerTron() {
               }}
             />
             
-            {/* Simplified direction indicator with animation - absolute positioning */}
+            {/* Direction indicator using same approach as thruster */}
             <div style={{
               position: "absolute",
               top: "-18px",
               left: "50%",
               transform: "translateX(-50%)",
               zIndex: 2,
-              animation: "direction-pulse 1s infinite",
-              width: "20px",
-              height: "15px",
-              overflow: "visible"
+              animation: "direction-pulse 1s infinite"
             }}>
-              {/* Triangle shape - centered */}
+              {/* Main triangle shape */}
               <div style={{
-                position: "absolute",
-                top: 0,
-                left: "50%",
                 width: 0,
                 height: 0,
+                margin: "0 auto", // Center the triangle horizontally
                 borderLeft: "10px solid transparent",
                 borderRight: "10px solid transparent",
                 borderBottom: "15px solid #FCF2EE",
-                filter: "drop-shadow(0 0 5px #D77655)",
-                transform: "translateX(-50%)" // This centers the triangle
+                filter: "drop-shadow(0 0 5px #D77655)"
               }} />
               
-              {/* Arrow glow effect - centered */}
+              {/* Glow effect centered under the triangle */}
               <div style={{
                 position: "absolute",
                 top: "0",
                 left: "50%",
+                transform: "translateX(-50%)",
                 width: "20px",
                 height: "15px",
                 background: "radial-gradient(circle, rgba(252, 242, 238, 0.4) 0%, rgba(252, 242, 238, 0) 70%)",
-                zIndex: -1,
-                transform: "translateX(-50%)" // Center the glow effect too
+                zIndex: -1
               }} />
             </div>
             
