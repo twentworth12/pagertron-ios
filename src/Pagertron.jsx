@@ -1118,7 +1118,7 @@ function PagerTron() {
       {gameStarted && (
         <div style={{
           position: "absolute",
-          bottom: "10px",
+          bottom: "25px",
           right: "10px",
           fontSize: "16px",
           fontFamily: "'Press Start 2P', cursive",
