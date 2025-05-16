@@ -1,5 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
+/* === ARCADE COLOR PALETTE === */
+:root {
+  /* Main game colors */
+  --game-primary: #F25533;  /* Main red/orange background */
+  --game-secondary: #D77655; /* Darker variant for Claude */
+  --game-text: #FCF2EE;     /* Light text color */
+  --game-black: #000000;     /* True black for shadows */
+  
+  /* Accent colors */
+  --accent-yellow: #ffff00;  /* Bright yellow for scores and highlights */
+  --accent-orange: #ff8800;  /* Orange for flames and effects */
+  --accent-red: #ff0000;     /* Pure red for warnings/game over */
+  --accent-green: #00ff00;   /* Bright green for level text */
+  --accent-cyan: #00ffff;    /* Cyan for UI elements */
+  --accent-magenta: #ff00ff; /* Magenta for UI elements */
+  
+  /* UI colors */
+  --ui-highlight: #88ff88;   /* Light green for UI highlights */
+  --ui-shadow: rgba(0, 0, 0, 0.7); /* Shadow color */
+  --ui-glow: rgba(255, 255, 255, 0.9); /* Glow color */
+  
+  /* Gradient stops for multi-color effects */
+  --gradient-purple-cyan: linear-gradient(135deg, var(--accent-magenta), var(--accent-cyan));
+  --gradient-yellow-red: linear-gradient(135deg, var(--accent-yellow), var(--accent-red));
+  
+  /* Retro border styles */
+  --pixel-border-outer: 5px solid var(--game-text);
+  --pixel-border-thin: 2px solid var(--game-text);
+  --pixel-border-accent-magenta: 2px solid var(--accent-magenta);
+  --pixel-border-accent-cyan: 2px solid var(--accent-cyan);
+}
+
 /* === 80s ARCADE ANIMATIONS === */
 
 /* Basic pulse for blinking elements */
@@ -68,6 +100,41 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
   100% { transform: scale(1); }
+}
+
+/* Thruster flame animation */
+@keyframes thruster-flame {
+  0% { 
+    height: 15px; 
+    opacity: 0.9;
+    filter: blur(1px);
+  }
+  50% { 
+    height: 24px; 
+    opacity: 1;
+    filter: blur(2px);
+  }
+  100% { 
+    height: 18px; 
+    opacity: 0.8;
+    filter: blur(1.5px);
+  }
+}
+
+/* Direction indicator pulse */
+@keyframes direction-pulse {
+  0% { 
+    transform: translateY(0); 
+    opacity: 0.8;
+  }
+  50% { 
+    transform: translateY(-2px); 
+    opacity: 1;
+  }
+  100% { 
+    transform: translateY(0); 
+    opacity: 0.8;
+  }
 }
 
 /* Floating score animation */
@@ -282,14 +349,45 @@ body::after {
   letter-spacing: 1px;
 }
 
+/* Retro Panel Styles */
+.retro-panel {
+  background-color: var(--ui-shadow);
+  border: var(--pixel-border-thin);
+  padding: 5px 10px;
+  position: relative;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.retro-panel--score {
+  border-right: var(--pixel-border-accent-magenta);
+  border-bottom: var(--pixel-border-accent-cyan);
+}
+
+.retro-panel--level {
+  border-left: var(--pixel-border-accent-cyan);
+  border-bottom: var(--pixel-border-accent-magenta);
+}
+
+.retro-panel--top {
+  border-top: var(--pixel-border-accent-cyan);
+  border-left: var(--pixel-border-accent-magenta);
+  border-right: var(--pixel-border-accent-magenta);
+}
+
+.retro-panel--bottom {
+  border-bottom: var(--pixel-border-accent-cyan);
+  border-left: var(--pixel-border-accent-magenta);
+  border-right: var(--pixel-border-accent-magenta);
+}
+
 /* Top Score Celebration Styles */
 .top-score-celebration {
   text-align: center;
   margin-bottom: 20px;
   padding: 15px 10px;
-  border: 3px solid #ffff00;
+  border: 3px solid var(--accent-yellow);
   border-radius: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: var(--ui-shadow);
   position: relative;
   overflow: hidden;
   box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);

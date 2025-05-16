@@ -1636,6 +1636,21 @@ function PagerTron() {
             transition: "transform 0.1s ease",
             position: "relative"
           }}>
+            {/* Player shield glow effect */}
+            <div style={{
+              position: "absolute",
+              width: "52px",
+              height: "52px",
+              top: "-3.5px",
+              left: "-3.5px",
+              borderRadius: "14px",
+              backgroundColor: "rgba(215, 118, 85, 0.1)",
+              border: "2px solid rgba(252, 242, 238, 0.5)",
+              boxShadow: "0 0 12px rgba(215, 118, 85, 0.7)",
+              animation: "pulse 1.5s infinite alternate",
+              zIndex: -1
+            }} />
+            
             <img
               src={claudeLogo}
               alt="Claude Logo"
@@ -1646,34 +1661,96 @@ function PagerTron() {
                 borderRadius: "12px"
               }}
             />
-            {/* Direction indicator */}
+            
+            {/* Enhanced direction indicator with animation */}
             <div style={{
               position: "absolute",
-              top: "-15px",
+              top: "-18px",
               left: "50%",
               transform: "translateX(-50%)",
-              width: "0",
-              height: "0",
-              borderLeft: "10px solid transparent",
-              borderRight: "10px solid transparent",
-              borderBottom: "15px solid #FCF2EE",
-              filter: "drop-shadow(0 0 3px #D77655)"
-            }}/>
-            {/* Thruster effect when accelerating */}
+              zIndex: 2,
+              animation: "direction-pulse 1s infinite"
+            }}>
+              <div style={{
+                width: "0",
+                height: "0",
+                borderLeft: "10px solid transparent",
+                borderRight: "10px solid transparent",
+                borderBottom: "15px solid #FCF2EE",
+                filter: "drop-shadow(0 0 5px #D77655)",
+                position: "relative"
+              }} />
+              
+              {/* Arrow glow effect */}
+              <div style={{
+                position: "absolute",
+                top: "0",
+                left: "-10px",
+                width: "20px",
+                height: "15px",
+                background: "radial-gradient(circle, rgba(252, 242, 238, 0.4) 0%, rgba(252, 242, 238, 0) 70%)",
+                zIndex: -1
+              }} />
+            </div>
+            
+            {/* Enhanced thruster effect when accelerating */}
             {thrusterActive && (
               <div style={{
                 position: "absolute",
-                bottom: "-70%", // Position behind the player
+                bottom: "-14px",
                 left: "50%",
-                transform: "translateX(-50%)",
-                fontSize: "24px",
-                color: "#ffff00",
-                filter: "drop-shadow(0 0 5px #ff8800)",
-                transformOrigin: "center",
-                animation: "pulse 0.2s infinite alternate",
+                transform: "translateX(-50%) rotate(180deg)",
                 zIndex: -1
               }}>
-                {Math.random() > 0.5 ? "✨" : "💫"}
+                {/* Flame base */}
+                <div style={{
+                  width: "18px",
+                  height: "20px",
+                  background: "linear-gradient(to bottom, #ffff00 0%, #ff8800 70%, transparent 100%)",
+                  borderTopLeftRadius: "9px",
+                  borderTopRightRadius: "9px",
+                  filter: "blur(2px) drop-shadow(0 0 5px #ff8800)",
+                  animation: "thruster-flame 0.15s infinite",
+                  opacity: 0.9
+                }} />
+                
+                {/* Flame core */}
+                <div style={{
+                  position: "absolute",
+                  top: "2px",
+                  left: "5px",
+                  width: "8px",
+                  height: "12px",
+                  background: "linear-gradient(to bottom, #ffffff 0%, #ffff88 100%)",
+                  borderTopLeftRadius: "4px",
+                  borderTopRightRadius: "4px",
+                  filter: "blur(1px) drop-shadow(0 0 3px #ffffff)",
+                  opacity: 0.7
+                }} />
+                
+                {/* Particle effects */}
+                <div style={{
+                  position: "absolute",
+                  bottom: "-5px",
+                  left: "3px",
+                  fontSize: "14px",
+                  color: "#ffff00",
+                  filter: "drop-shadow(0 0 2px #ff8800)",
+                  opacity: Math.random() > 0.3 ? 0.8 : 0 // Flickering effect
+                }}>
+                  ✨
+                </div>
+                <div style={{
+                  position: "absolute",
+                  bottom: "-5px",
+                  right: "3px",
+                  fontSize: "14px",
+                  color: "#ffff00",
+                  filter: "drop-shadow(0 0 2px #ff8800)",
+                  opacity: Math.random() > 0.4 ? 0.8 : 0 // Flickering effect
+                }}>
+                  ✨
+                </div>
               </div>
             )}
           </div>
