@@ -1098,13 +1098,12 @@ function PagerTron() {
         <div className="crt-vignette"></div>
         <div className="crt-rgb-shift"></div>
       </div>
-      {!gameStarted && (
-        <GameMusic
-          key="music-menu"
-          isGameStarted={false}
-          isGameOver={gameOver}
-        />
-      )}
+      {/* Music component - always rendered with correct state */}
+      <GameMusic
+        key={`music-${Date.now()}`} 
+        isGameStarted={gameStarted}
+        isGameOver={gameOver}
+      />
       {/* Background Text Overlay */}
       <div style={{
         position: "absolute",
