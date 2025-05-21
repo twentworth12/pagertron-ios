@@ -25,7 +25,7 @@ const forcePlay = () => {
 const GameMusic = ({ isGameStarted, isGameOver }) => {
   const introMusicRef = useRef(null);
   const gameplayMusicRef = useRef(null);
-  const [isMuted, setIsMuted] = useState(false); // Start with music unmuted by default for better user experience
+  const [isMuted, setIsMuted] = useState(true); // Start with music muted by default
 
   // Store mute preference in localStorage for persistence
   useEffect(() => {
@@ -35,8 +35,8 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       console.log('Found stored music preference:', shouldMute ? 'muted' : 'unmuted');
       setIsMuted(shouldMute);
     } else {
-      // If no preference is stored, set a default preference of unmuted
-      localStorage.setItem('pagertronMusicMuted', 'false');
+      // If no preference is stored, set a default preference of muted
+      localStorage.setItem('pagertronMusicMuted', 'true');
     }
     
     // Try to reset any existing audio elements
