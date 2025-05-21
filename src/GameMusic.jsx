@@ -355,17 +355,21 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
   // Removed event listeners for better performance
 
   // Render mute/unmute button wrapped in a div to ensure clicks work
-  // Position the button in the corner appropriate to the game state
-  const buttonPosition = isGameStarted && !isGameOver
-    ? { top: 55, right: 15 } // When in gameplay, position below the level indicator
-    : { top: 15, right: 15 }; // Default position for menu/game over
-    
+  // Only show button in menus (not during active gameplay)
+  const showButton = !isGameStarted || isGameOver;
+  
+  // Return null (no button) during active gameplay
+  if (!showButton) {
+    return null;
+  }
+  
+  // Only render the button in menu screens
   return (
     <div
       style={{
         position: 'absolute',
-        top: buttonPosition.top,
-        right: buttonPosition.right,
+        top: 15,
+        right: 15,
         zIndex: 10000, // Absolute highest z-index
         pointerEvents: 'none', // Let events pass through to game elements
       }}
