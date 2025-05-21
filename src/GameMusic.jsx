@@ -156,7 +156,7 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
   useEffect(() => {
     // Debug log to see state changes
     console.log("Music transition - Game Started:", isGameStarted, "Game Over:", isGameOver, "Muted:", isMuted);
-    console.log("NOTE: gameplay music disabled for performance");
+    console.log("Music transition handling both intro and gameplay music");
     
     // Check if audio references exist
     if (!introMusicRef.current || !gameplayMusicRef.current) {
@@ -172,32 +172,56 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       return; // Skip transitions if muted
     }
     
-    // For simplicity, always use intro music regardless of game state
-    // This removes complexities that cause the restart issues
+    // Play appropriate music based on game state
     const introMusic = introMusicRef.current;
     const gameplayMusic = gameplayMusicRef.current;
     
-    // Ensure gameplay music is paused
-    gameplayMusic.pause();
-    
-    // Only play intro music if it's paused (prevent unnecessary restarts)
-    if (introMusic.paused) {
-      console.log("Starting intro music");
+    if (isGameStarted && !isGameOver) {
+      // In active gameplay, use gameplay music
+      introMusic.pause();
       
-      // Try to resume audio context if needed
-      try {
-        if (window.PagertronAudio && window.PagertronAudio.context) {
-          window.PagertronAudio.context.resume().catch(() => {});
-        }
-      } catch (e) {}
+      // Only play gameplay music if it's paused (prevent unnecessary restarts)
+      if (gameplayMusic.paused) {
+        console.log("Starting gameplay music");
+        
+        // Try to resume audio context if needed
+        try {
+          if (window.PagertronAudio && window.PagertronAudio.context) {
+            window.PagertronAudio.context.resume().catch(() => {});
+          }
+        } catch (e) {}
+        
+        // Set volume
+        gameplayMusic.volume = 0.4;
+        
+        // Single attempt to play without reloading or resetting position
+        gameplayMusic.play().catch(error => {
+          console.error('Failed to play gameplay music:', error);
+        });
+      }
+    } else {
+      // In menu or game over, use intro music
+      gameplayMusic.pause();
       
-      // Set volume
-      introMusic.volume = 0.5;
-      
-      // Single attempt to play without reloading or resetting position
-      introMusic.play().catch(error => {
-        console.error('Failed to play intro music:', error);
-      });
+      // Only play intro music if it's paused (prevent unnecessary restarts)
+      if (introMusic.paused) {
+        console.log("Starting intro music");
+        
+        // Try to resume audio context if needed
+        try {
+          if (window.PagertronAudio && window.PagertronAudio.context) {
+            window.PagertronAudio.context.resume().catch(() => {});
+          }
+        } catch (e) {}
+        
+        // Set volume
+        introMusic.volume = 0.5;
+        
+        // Single attempt to play without reloading or resetting position
+        introMusic.play().catch(error => {
+          console.error('Failed to play intro music:', error);
+        });
+      }
     }
     
     // No return cleanup function - simplifies the code and prevents issues
@@ -337,7 +361,7 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
           zIndex: 1000 // Ensure button is above other elements
         }}
       >
-        {isMuted ? '🔈 MENU MUSIC OFF' : '🔊 MENU MUSIC ON'}
+        {isMuted ? '🔈 MUSIC OFF' : '🔊 MUSIC ON'}
       </button>
     </div>
   );
