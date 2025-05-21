@@ -133,6 +133,94 @@ function PagerTron() {
   // Track thruster state for visual effects
   const [thrusterActive, setThrusterActive] = useState(false);
 
+  // Continuous key processing effect - handles held keys
+  useEffect(() => {
+    if (!gameStarted || gameOver || isTransitioning) return;
+    
+    const processHeldKeys = setInterval(() => {
+      // Process held movement keys
+      setPlayer(prev => {
+        const rotationSpeed = 8; // degrees per frame for held keys
+        const thrustPower = 0.3; // acceleration per frame for held keys
+        const maxSpeed = 10; // maximum velocity
+
+        // Get current state
+        let newRotation = prev.rotation;
+        let newVelocityX = prev.velocityX;
+        let newVelocityY = prev.velocityY;
+        let newDirection = prev.direction;
+
+        // Handle continuous rotation with held left/right arrows
+        if (keysPressed["ArrowLeft"]) {
+          newRotation = (newRotation - rotationSpeed) % 360;
+          if (newRotation < 0) newRotation += 360;
+        }
+        if (keysPressed["ArrowRight"]) {
+          newRotation = (newRotation + rotationSpeed) % 360;
+        }
+
+        // Handle continuous forward thrust with held up arrow
+        if (keysPressed["ArrowUp"]) {
+          const rotationRad = newRotation * Math.PI / 180;
+          newVelocityX += Math.sin(rotationRad) * thrustPower;
+          newVelocityY -= Math.cos(rotationRad) * thrustPower;
+
+          const currentSpeed = Math.sqrt(newVelocityX * newVelocityX + newVelocityY * newVelocityY);
+          if (currentSpeed > maxSpeed) {
+            const scale = maxSpeed / currentSpeed;
+            newVelocityX *= scale;
+            newVelocityY *= scale;
+          }
+          
+          setThrusterActive(true);
+        }
+
+        // Set direction based on rotation for backward compatibility
+        if (newRotation >= 315 || newRotation < 45) newDirection = "up";
+        else if (newRotation >= 45 && newRotation < 135) newDirection = "right";
+        else if (newRotation >= 135 && newRotation < 225) newDirection = "down";
+        else if (newRotation >= 225 && newRotation < 315) newDirection = "left";
+
+        return {
+          ...prev,
+          rotation: newRotation,
+          direction: newDirection,
+          velocityX: newVelocityX,
+          velocityY: newVelocityY
+        };
+      });
+      
+      // Handle continuous shooting with held spacebar
+      if (keysPressed[" "] && !spacebarPressed) {
+        setSpacebarPressed(true);
+        setMissiles(prev => {
+          const centerX = player.x + PLAYER_SIZE / 2;
+          const centerY = player.y + PLAYER_SIZE / 2;
+          const rotationRad = player.rotation * Math.PI / 180;
+          const missileDirectionX = Math.sin(rotationRad);
+          const missileDirectionY = -Math.cos(rotationRad);
+
+          return [
+            ...prev,
+            {
+              x: centerX,
+              y: centerY,
+              direction: player.direction,
+              rotation: player.rotation,
+              velocityX: missileDirectionX,
+              velocityY: missileDirectionY
+            }
+          ];
+        });
+        
+        // Allow another shot after a brief delay
+        setTimeout(() => setSpacebarPressed(false), 150);
+      }
+    }, 50); // Process held keys at 20fps
+    
+    return () => clearInterval(processHeldKeys);
+  }, [gameStarted, gameOver, isTransitioning, keysPressed, player, spacebarPressed]);
+
   // Main game loop (runs when game is active and not over)
   useEffect(() => {
     if (!gameStarted || gameOver || isTransitioning) return;
@@ -380,113 +468,31 @@ function PagerTron() {
     return () => clearInterval(gameLoop);
   }, [player, level, gameOver, isTransitioning, konamiActive, gameStarted]);
 
-  // Keep track of pressed keys to prevent key repeat events causing choppiness
+  // Keep track of when spacebar is pressed to prevent rapid-fire shooting
+  const [spacebarPressed, setSpacebarPressed] = useState(false);
+  
+  // Track which keys are currently pressed
   const [keysPressed, setKeysPressed] = useState({});
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // Prevent processing key repeats to avoid audio stuttering
-      if (keysPressed[event.key]) return;
+      // Track which keys are pressed
+      setKeysPressed(prev => ({...prev, [event.key]: true}));
       
-      // Track that this key is now pressed
-      setKeysPressed(prev => ({ ...prev, [event.key]: true }));
+      // Only prevent repeat events for spacebar to avoid rapid-fire shooting
+      if (event.key === " " && event.repeat) return;
       
       if (!gameStarted) {
         if (event.key === " ") {
           setGameStarted(true);
-
           // Force a user interaction to help with audio context
           document.body.click();
         }
         return;
       }
       if (gameOver || isTransitioning) return;
-      setPlayer(prev => {
-        const rotationSpeed = 15; // degrees per key press
-        const thrustPower = 0.5; // acceleration per key press
-        const maxSpeed = 10; // maximum velocity
-
-        // Get current state
-        let newRotation = prev.rotation;
-        let newVelocityX = prev.velocityX;
-        let newVelocityY = prev.velocityY;
-        let newDirection = prev.direction; // Keep for backward compatibility
-
-        // Handle rotation with left/right arrows
-        if (event.key === "ArrowLeft") {
-          newRotation = (newRotation - rotationSpeed) % 360;
-          if (newRotation < 0) newRotation += 360;
-        }
-        if (event.key === "ArrowRight") {
-          newRotation = (newRotation + rotationSpeed) % 360;
-        }
-
-        // Handle forward thrust with up arrow
-        if (event.key === "ArrowUp") {
-          // Convert rotation to radians for math calculations
-          const rotationRad = newRotation * Math.PI / 180;
-
-          // Apply thrust in direction of rotation
-          newVelocityX += Math.sin(rotationRad) * thrustPower;
-          newVelocityY -= Math.cos(rotationRad) * thrustPower; // Y is inverted in screen coordinates
-
-          // Cap maximum velocity
-          const currentSpeed = Math.sqrt(newVelocityX * newVelocityX + newVelocityY * newVelocityY);
-          if (currentSpeed > maxSpeed) {
-            const scale = maxSpeed / currentSpeed;
-            newVelocityX *= scale;
-            newVelocityY *= scale;
-          }
-
-          // Activate thruster visual effect
-          setThrusterActive(true);
-        }
-
-        // Set direction based on rotation for backward compatibility
-        if (newRotation >= 315 || newRotation < 45) newDirection = "up";
-        else if (newRotation >= 45 && newRotation < 135) newDirection = "right";
-        else if (newRotation >= 135 && newRotation < 225) newDirection = "down";
-        else if (newRotation >= 225 && newRotation < 315) newDirection = "left";
-
-        // Keep position unchanged - it will be updated in the game loop
-        return {
-          ...prev,
-          rotation: newRotation,
-          direction: newDirection,
-          velocityX: newVelocityX,
-          velocityY: newVelocityY
-        };
-      });
-      if (event.key === " ") {
-        setMissiles(prev => {
-          // Calculate the center of the player
-          const centerX = player.x + PLAYER_SIZE / 2;
-          const centerY = player.y + PLAYER_SIZE / 2;
-
-          // Convert rotation to radians for missile direction
-          const rotationRad = player.rotation * Math.PI / 180;
-
-          // Calculate missile direction vector based on player rotation
-          const missileDirectionX = Math.sin(rotationRad);
-          const missileDirectionY = -Math.cos(rotationRad); // Y is inverted in screen coordinates
-
-          // Add the missile with centered coordinates and rotation-based direction
-          return [
-            ...prev,
-            {
-              x: centerX,
-              y: centerY,
-              direction: player.direction, // Keep for backward compatibility
-              rotation: player.rotation,
-              velocityX: missileDirectionX,
-              velocityY: missileDirectionY
-            }
-          ];
-        });
-      }
-
-      // M key for music is now handled in a separate event listener
-
+      
+      // Handle Konami code input
       const key = event.key;
       setKonamiInput(prev => {
         const newInput = [...prev, key];
@@ -502,7 +508,7 @@ function PagerTron() {
         return newInput;
       });
     };
-    // Add key up handler to track when keys are released
+    
     const handleKeyUp = (event) => {
       // Remove this key from the pressed keys
       setKeysPressed(prev => {
@@ -510,6 +516,11 @@ function PagerTron() {
         delete newState[event.key];
         return newState;
       });
+      
+      // Stop spacebar tracking when released
+      if (event.key === " ") {
+        setSpacebarPressed(false);
+      }
     };
     
     window.addEventListener("keydown", handleKeyDown);
@@ -519,7 +530,7 @@ function PagerTron() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [gameStarted, player, gameOver, isTransitioning, konamiCode]);
+  }, [gameStarted, gameOver, isTransitioning, konamiCode]);
 
   // Music toggle is now only available through the button click
   // Removed M key handling to improve performance
