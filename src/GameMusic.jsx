@@ -152,11 +152,10 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     };
   }, [initializing, isMuted]);
   
-  // Simplified music transitions based on game state
+  // Improved music transitions that prevent restart during transitions
   useEffect(() => {
     // Debug log to see state changes
     console.log("Music transition - Game Started:", isGameStarted, "Game Over:", isGameOver, "Muted:", isMuted);
-    console.log("Music transition handling both intro and gameplay music");
     
     // Check if audio references exist
     if (!introMusicRef.current || !gameplayMusicRef.current) {
@@ -172,17 +171,36 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       return; // Skip transitions if muted
     }
     
-    // Play appropriate music based on game state
+    // Get references to both audio elements
     const introMusic = introMusicRef.current;
     const gameplayMusic = gameplayMusicRef.current;
     
+    // Store current playing state before making changes
+    const introWasPlaying = !introMusic.paused;
+    const gameplayWasPlaying = !gameplayMusic.paused;
+    
+    // Log the current state for debugging
+    console.log("Current playback state:", { 
+      introWasPlaying, 
+      gameplayWasPlaying, 
+      introCurrentTime: introMusic.currentTime,
+      gameplayCurrentTime: gameplayMusic.currentTime
+    });
+    
     if (isGameStarted && !isGameOver) {
-      // In active gameplay, use gameplay music
-      introMusic.pause();
-      
-      // Only play gameplay music if it's paused (prevent unnecessary restarts)
-      if (gameplayMusic.paused) {
-        console.log("Starting gameplay music");
+      // We want gameplay music to be playing in this state
+      if (!gameplayWasPlaying) {
+        // Gameplay music isn't playing, so we need to start it
+        console.log("Starting gameplay music - it wasn't already playing");
+        
+        // Pause intro music if it was playing
+        if (introWasPlaying) {
+          console.log("Pausing intro music that was playing");
+          introMusic.pause();
+        }
+        
+        // Set volume
+        gameplayMusic.volume = 0.4;
         
         // Try to resume audio context if needed
         try {
@@ -190,22 +208,30 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
             window.PagertronAudio.context.resume().catch(() => {});
           }
         } catch (e) {}
-        
-        // Set volume
-        gameplayMusic.volume = 0.4;
         
         // Single attempt to play without reloading or resetting position
         gameplayMusic.play().catch(error => {
           console.error('Failed to play gameplay music:', error);
         });
+      } else {
+        // Gameplay music is already playing, just ensure intro is paused
+        console.log("Gameplay music already playing, keeping it going");
+        introMusic.pause();
       }
     } else {
-      // In menu or game over, use intro music
-      gameplayMusic.pause();
-      
-      // Only play intro music if it's paused (prevent unnecessary restarts)
-      if (introMusic.paused) {
-        console.log("Starting intro music");
+      // We want intro music to be playing in this state
+      if (!introWasPlaying) {
+        // Intro music isn't playing, so we need to start it
+        console.log("Starting intro music - it wasn't already playing");
+        
+        // Pause gameplay music if it was playing
+        if (gameplayWasPlaying) {
+          console.log("Pausing gameplay music that was playing");
+          gameplayMusic.pause();
+        }
+        
+        // Set volume
+        introMusic.volume = 0.5;
         
         // Try to resume audio context if needed
         try {
@@ -214,13 +240,14 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
           }
         } catch (e) {}
         
-        // Set volume
-        introMusic.volume = 0.5;
-        
         // Single attempt to play without reloading or resetting position
         introMusic.play().catch(error => {
           console.error('Failed to play intro music:', error);
         });
+      } else {
+        // Intro music is already playing, just ensure gameplay is paused
+        console.log("Intro music already playing, keeping it going");
+        gameplayMusic.pause();
       }
     }
     
