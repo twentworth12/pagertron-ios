@@ -380,8 +380,17 @@ function PagerTron() {
     return () => clearInterval(gameLoop);
   }, [player, level, gameOver, isTransitioning, konamiActive, gameStarted]);
 
+  // Keep track of pressed keys to prevent key repeat events causing choppiness
+  const [keysPressed, setKeysPressed] = useState({});
+
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // Prevent processing key repeats to avoid audio stuttering
+      if (keysPressed[event.key]) return;
+      
+      // Track that this key is now pressed
+      setKeysPressed(prev => ({ ...prev, [event.key]: true }));
+      
       if (!gameStarted) {
         if (event.key === " ") {
           setGameStarted(true);
@@ -493,8 +502,23 @@ function PagerTron() {
         return newInput;
       });
     };
+    // Add key up handler to track when keys are released
+    const handleKeyUp = (event) => {
+      // Remove this key from the pressed keys
+      setKeysPressed(prev => {
+        const newState = {...prev};
+        delete newState[event.key];
+        return newState;
+      });
+    };
+    
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
   }, [gameStarted, player, gameOver, isTransitioning, konamiCode]);
 
   // Music toggle is now only available through the button click
@@ -1098,9 +1122,9 @@ function PagerTron() {
         <div className="crt-vignette"></div>
         <div className="crt-rgb-shift"></div>
       </div>
-      {/* Music component - always rendered with correct state */}
+      {/* Music component - using a stable key to prevent remounting */}
       <GameMusic
-        key={`music-${Date.now()}`} 
+        key="music-player-stable" 
         isGameStarted={gameStarted}
         isGameOver={gameOver}
       />
