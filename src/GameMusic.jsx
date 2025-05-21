@@ -22,9 +22,14 @@ const forcePlay = () => {
   }
 };
 
+// Create static refs outside the component to persist across re-renders
+const introMusicStaticRef = { current: null };
+const gameplayMusicStaticRef = { current: null };
+
 const GameMusic = ({ isGameStarted, isGameOver }) => {
-  const introMusicRef = useRef(null);
-  const gameplayMusicRef = useRef(null);
+  // Use the static refs to ensure music persistence
+  const introMusicRef = useRef(introMusicStaticRef);
+  const gameplayMusicRef = useRef(gameplayMusicStaticRef);
   const [isMuted, setIsMuted] = useState(true); // Start with music muted by default
 
   // Store mute preference in localStorage for persistence
@@ -55,36 +60,33 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
   useEffect(() => {
     console.log("Initializing GameMusic component");
 
-    // Clean up any existing audio elements
-    try {
-      const existingIntro = document.getElementById('intro-music');
-      const existingGameplay = document.getElementById('gameplay-music');
-      if (existingIntro) document.body.removeChild(existingIntro);
-      if (existingGameplay) document.body.removeChild(existingGameplay);
-    } catch (e) {
-      console.log("Error cleaning up existing audio elements:", e);
+    // Only create new audio elements if they don't already exist
+    if (!introMusicRef.current.current || !gameplayMusicRef.current.current) {
+      console.log("Creating new audio elements");
+      
+      // Create and configure intro music
+      const introMusic = new Audio('/music/Race.mp3');
+      introMusic.id = "intro-music";
+      introMusic.loop = true;
+      introMusic.volume = 0.5;
+      introMusic.preload = "auto";
+
+      // Create and configure gameplay music
+      const gameplayMusic = new Audio('/music/Fatality.mp3');
+      gameplayMusic.id = "gameplay-music";
+      gameplayMusic.loop = true;
+      gameplayMusic.volume = 0.4;
+      gameplayMusic.preload = "auto";
+
+      // Store references in our static refs
+      introMusicRef.current.current = introMusic;
+      gameplayMusicRef.current.current = gameplayMusic;
+      
+      // Log success
+      console.log("Successfully created and stored audio elements");
+    } else {
+      console.log("Using existing audio elements");
     }
-    
-    // Create and configure audio elements with basic settings
-    const introMusic = new Audio('/music/Race.mp3');
-    introMusic.id = "intro-music";
-    introMusic.loop = true;
-    introMusic.volume = 0.5;
-    introMusic.preload = "auto";
-
-    const gameplayMusic = new Audio('/music/Fatality.mp3');
-    gameplayMusic.id = "gameplay-music";
-    gameplayMusic.loop = true;
-    gameplayMusic.volume = 0.4;
-    gameplayMusic.preload = "auto";
-
-    // Add audio elements to DOM
-    document.body.appendChild(introMusic);
-    document.body.appendChild(gameplayMusic);
-
-    // Store references
-    introMusicRef.current = introMusic;
-    gameplayMusicRef.current = gameplayMusic;
 
     // Single attempt to unlock audio
     try {
@@ -103,10 +105,10 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     });
 
     // Initialize music playback if not muted
-    if (!isMuted) {
+    if (!isMuted && introMusicRef.current.current) {
       console.log('Attempting to play intro music');
       
-      const playPromise = introMusic.play();
+      const playPromise = introMusicRef.current.current.play();
       if (playPromise !== undefined) {
         playPromise.then(() => {
           console.log('Intro music started successfully');
@@ -117,8 +119,8 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
           
           // Set up a one-time event listener for first click
           const handleFirstClick = () => {
-            if (!isMuted && introMusicRef.current) {
-              introMusicRef.current.play().catch(() => {});
+            if (!isMuted && introMusicRef.current.current) {
+              introMusicRef.current.current.play().catch(() => {});
             }
             document.removeEventListener('click', handleFirstClick);
           };
@@ -131,24 +133,10 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       setInitializing(false);
     }
 
-    // Clean up on unmount
+    // No cleanup on unmount to persist audio across renders
+    // This is intentional to allow music to continue playing during transitions
     return () => {
-      // Clean up audio elements
-      if (introMusicRef.current) {
-        introMusicRef.current.pause();
-        introMusicRef.current.src = '';
-        try {
-          document.body.removeChild(document.getElementById('intro-music'));
-        } catch (e) {}
-      }
-
-      if (gameplayMusicRef.current) {
-        gameplayMusicRef.current.pause();
-        gameplayMusicRef.current.src = '';
-        try {
-          document.body.removeChild(document.getElementById('gameplay-music'));
-        } catch (e) {}
-      }
+      console.log("GameMusic component unmounting, but keeping audio elements");
     };
   }, [initializing, isMuted]);
   
@@ -158,7 +146,7 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     console.log("Music transition - Game Started:", isGameStarted, "Game Over:", isGameOver, "Muted:", isMuted);
     
     // Check if audio references exist
-    if (!introMusicRef.current || !gameplayMusicRef.current) {
+    if (!introMusicRef.current.current || !gameplayMusicRef.current.current) {
       console.error("Missing audio references during transition");
       return;
     }
@@ -166,14 +154,14 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     // Handle muted state
     if (isMuted) {
       // Ensure both tracks are paused if muted
-      introMusicRef.current.pause();
-      gameplayMusicRef.current.pause();
+      introMusicRef.current.current.pause();
+      gameplayMusicRef.current.current.pause();
       return; // Skip transitions if muted
     }
     
     // Get references to both audio elements
-    const introMusic = introMusicRef.current;
-    const gameplayMusic = gameplayMusicRef.current;
+    const introMusic = introMusicRef.current.current;
+    const gameplayMusic = gameplayMusicRef.current.current;
     
     // Store current playing state before making changes
     const introWasPlaying = !introMusic.paused;
@@ -184,7 +172,9 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
       introWasPlaying, 
       gameplayWasPlaying, 
       introCurrentTime: introMusic.currentTime,
-      gameplayCurrentTime: gameplayMusic.currentTime
+      gameplayCurrentTime: gameplayMusic.currentTime,
+      isGameStarted,
+      isGameOver
     });
     
     if (isGameStarted && !isGameOver) {
@@ -204,19 +194,33 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
         
         // Try to resume audio context if needed
         try {
-          if (window.PagertronAudio && window.PagertronAudio.context) {
-            window.PagertronAudio.context.resume().catch(() => {});
+          if (window.AudioContext || window.webkitAudioContext) {
+            const tempContext = new (window.AudioContext || window.webkitAudioContext)();
+            tempContext.resume().catch(() => {});
           }
         } catch (e) {}
         
         // Single attempt to play without reloading or resetting position
-        gameplayMusic.play().catch(error => {
-          console.error('Failed to play gameplay music:', error);
-        });
+        const playPromise = gameplayMusic.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error('Failed to play gameplay music:', error);
+            
+            // Retry once on user interaction to handle autoplay restrictions
+            const unlockAudio = () => {
+              gameplayMusic.play().catch(e => console.log("Still can't play:", e));
+              document.removeEventListener('click', unlockAudio);
+            };
+            document.addEventListener('click', unlockAudio, { once: true });
+          });
+        }
       } else {
         // Gameplay music is already playing, just ensure intro is paused
         console.log("Gameplay music already playing, keeping it going");
         introMusic.pause();
+        
+        // Ensure volume is set correctly in case it was changed
+        gameplayMusic.volume = 0.4;
       }
     } else {
       // We want intro music to be playing in this state
@@ -235,19 +239,33 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
         
         // Try to resume audio context if needed
         try {
-          if (window.PagertronAudio && window.PagertronAudio.context) {
-            window.PagertronAudio.context.resume().catch(() => {});
+          if (window.AudioContext || window.webkitAudioContext) {
+            const tempContext = new (window.AudioContext || window.webkitAudioContext)();
+            tempContext.resume().catch(() => {});
           }
         } catch (e) {}
         
         // Single attempt to play without reloading or resetting position
-        introMusic.play().catch(error => {
-          console.error('Failed to play intro music:', error);
-        });
+        const playPromise = introMusic.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error('Failed to play intro music:', error);
+            
+            // Retry once on user interaction to handle autoplay restrictions
+            const unlockAudio = () => {
+              introMusic.play().catch(e => console.log("Still can't play:", e));
+              document.removeEventListener('click', unlockAudio);
+            };
+            document.addEventListener('click', unlockAudio, { once: true });
+          });
+        }
       } else {
         // Intro music is already playing, just ensure gameplay is paused
         console.log("Intro music already playing, keeping it going");
         gameplayMusic.pause();
+        
+        // Ensure volume is set correctly in case it was changed
+        introMusic.volume = 0.5;
       }
     }
     
