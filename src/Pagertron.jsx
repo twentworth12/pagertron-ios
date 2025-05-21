@@ -541,15 +541,17 @@ function PagerTron() {
           
           if (distance < collisionDistance) {
             // Bug hit! Award points and remove bug
-            setScore(prevScore => prevScore + 25);
+            setScore(prevScore => prevScore + 100);
             setBug(null);
             
-            // Add floating score indicator
+            // Add floating score indicator with special message
             setFloatingScores(prevScores => [...prevScores, {
               id: `score-bug-${Date.now()}-${Math.random()}`,
               x: bug.x + 25,
               y: bug.y + 5,
-              value: 25,
+              value: 100,
+              text: "SQUASHED THE BUG +100",
+              isBug: true,
               createdAt: Date.now()
             }]);
             
@@ -1018,6 +1020,16 @@ function PagerTron() {
     setCloseEncounters([]);
     setBug(null);
     setBugAppeared(false);
+    setShowGameOverText(false);
+    setGameOverTextColor('#ff0000');
+    setPlayerExploding(false);
+    setPlayerExplosionStage(0);
+    setPlayerExplosionTime(0);
+    setScreenShaking(false);
+    setScreenShakeTime(0);
+    setScreenOffset({ x: 0, y: 0 });
+    setPagerExplosions([]);
+    setFloatingScores([]);
   };
 
   // Mobile device detection (phone, not tablet)
@@ -1446,15 +1458,17 @@ function PagerTron() {
             pointerEvents: "none",
             animation: "float-up 1s forwards",
             fontFamily: "'Press Start 2P', cursive",
-            fontSize: "20px",
-            color: "#ffff00",
-            textShadow: "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 8px #ff8800",
+            fontSize: score.isBug ? "16px" : "20px",
+            color: score.isBug ? "#00ff00" : "#ffff00",
+            textShadow: score.isBug 
+              ? "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 8px #00ff00" 
+              : "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 8px #ff8800",
             whiteSpace: "nowrap",
             fontWeight: "bold",
             transform: "translateX(-50%)"
           }}
         >
-          +{score.value}
+          {score.isBug ? score.text : `+${score.value}`}
         </div>
       ))}
       
@@ -2146,7 +2160,7 @@ function PagerTron() {
             animation: "pulse 2s infinite alternate"
           }}
         >
-          🐛
+          🪲
         </div>
       )}
 
