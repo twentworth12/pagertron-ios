@@ -37,40 +37,6 @@ function PagerTron() {
     return positions;
   }
 
-  // Mobile device detection (phone, not tablet)
-  const isMobile = /Mobi|Android.*Mobile/.test(navigator.userAgent);
-  if (isMobile) {
-    return (
-      <div style={{
-        backgroundColor: "#F25533",
-        width: "100%",
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        textAlign: "center",
-        color: "white",
-        fontFamily: "'Press Start 2P', cursive",
-        padding: "20px",
-        position: "relative"
-      }}>
-        <GameMusic
-          key="music-mobile"
-          isGameStarted={false}
-          isGameOver={false}
-        />
-        <div style={{
-          fontSize: "48px",
-          color: "rgba(255, 255, 255, 0.2)",
-          lineHeight: "1.2",
-          maxWidth: "90%",
-          margin: "0 auto"
-        }}>
-          Coming soon, check it out on your desktop for now
-        </div>
-      </div>
-    );
-  }
 
   // Regular game state variables
   const [pagers, setPagers] = useState(generateRandomPagers(7));
@@ -138,6 +104,10 @@ function PagerTron() {
   
   // Track which keys are currently pressed
   const [keysPressed, setKeysPressed] = useState({});
+
+  // Bug enemy state - appears once per level
+  const [bug, setBug] = useState(null);
+  const [bugAppeared, setBugAppeared] = useState(false);
 
   // Continuous key processing effect - handles held keys
   useEffect(() => {
@@ -454,6 +424,9 @@ function PagerTron() {
             setMissiles([]);
             // Reset close encounters for the new level
             setCloseEncounters([]);
+            // Reset bug state for new level
+            setBug(null);
+            setBugAppeared(false);
             // Reset player position to center of screen with upward direction and no velocity
             setPlayer({
               x: 640,
@@ -473,6 +446,125 @@ function PagerTron() {
     }, 50);
     return () => clearInterval(gameLoop);
   }, [player, level, gameOver, isTransitioning, konamiActive, gameStarted]);
+
+  // Bug spawning and movement effect
+  useEffect(() => {
+    if (!gameStarted || gameOver || isTransitioning || bugAppeared) return;
+    
+    // Spawn bug after a random delay (3-8 seconds into the level)
+    const spawnDelay = 3000 + Math.random() * 5000;
+    const spawnTimer = setTimeout(() => {
+      // Choose random entry point (top, bottom, left, or right)
+      const side = Math.floor(Math.random() * 4);
+      let startX, startY, velocityX, velocityY;
+      
+      switch (side) {
+        case 0: // Top
+          startX = Math.random() * SCREEN_WIDTH;
+          startY = -50;
+          velocityX = (Math.random() - 0.5) * 4; // Random horizontal movement
+          velocityY = 2 + Math.random() * 2; // Downward movement
+          break;
+        case 1: // Bottom  
+          startX = Math.random() * SCREEN_WIDTH;
+          startY = SCREEN_HEIGHT + 50;
+          velocityX = (Math.random() - 0.5) * 4;
+          velocityY = -2 - Math.random() * 2; // Upward movement
+          break;
+        case 2: // Left
+          startX = -50;
+          startY = Math.random() * SCREEN_HEIGHT;
+          velocityX = 2 + Math.random() * 2; // Rightward movement
+          velocityY = (Math.random() - 0.5) * 4;
+          break;
+        case 3: // Right
+          startX = SCREEN_WIDTH + 50;
+          startY = Math.random() * SCREEN_HEIGHT;
+          velocityX = -2 - Math.random() * 2; // Leftward movement
+          velocityY = (Math.random() - 0.5) * 4;
+          break;
+      }
+      
+      setBug({
+        x: startX,
+        y: startY,
+        velocityX,
+        velocityY,
+        id: `bug-${level}-${Date.now()}`
+      });
+      setBugAppeared(true);
+    }, spawnDelay);
+    
+    return () => clearTimeout(spawnTimer);
+  }, [gameStarted, level, gameOver, isTransitioning, bugAppeared, SCREEN_WIDTH, SCREEN_HEIGHT]);
+
+  // Bug movement effect
+  useEffect(() => {
+    if (!bug || !gameStarted || gameOver || isTransitioning) return;
+    
+    const bugMoveInterval = setInterval(() => {
+      setBug(prevBug => {
+        if (!prevBug) return null;
+        
+        const newX = prevBug.x + prevBug.velocityX;
+        const newY = prevBug.y + prevBug.velocityY;
+        
+        // Remove bug if it goes off screen
+        if (newX < -100 || newX > SCREEN_WIDTH + 100 || 
+            newY < -100 || newY > SCREEN_HEIGHT + 100) {
+          return null;
+        }
+        
+        return {
+          ...prevBug,
+          x: newX,
+          y: newY
+        };
+      });
+      
+      // Check for bug-missile collisions
+      setMissiles(prevMissiles => {
+        const updatedMissiles = prevMissiles.filter((missile) => {
+          if (!bug) return true;
+          
+          // Calculate distance between missile and bug
+          const distance = Math.sqrt(
+            Math.pow(missile.x - (bug.x + 25), 2) + // Bug center x (assuming 50px size)
+            Math.pow(missile.y - (bug.y + 25), 2)   // Bug center y
+          );
+          
+          // Check collision (similar to pager collision detection)
+          const missileSize = konamiActive ? KONAMI_MISSILE_SIZE : MISSILE_SIZE;
+          const missileRadius = missileSize * 0.6;
+          const bugRadius = 25; // Half of bug size
+          const collisionDistance = missileRadius + bugRadius;
+          
+          if (distance < collisionDistance) {
+            // Bug hit! Award points and remove bug
+            setScore(prevScore => prevScore + 25);
+            setBug(null);
+            
+            // Add floating score indicator
+            setFloatingScores(prevScores => [...prevScores, {
+              id: `score-bug-${Date.now()}-${Math.random()}`,
+              x: bug.x + 25,
+              y: bug.y + 5,
+              value: 25,
+              createdAt: Date.now()
+            }]);
+            
+            return false; // Remove this missile
+          }
+          
+          return true; // Keep this missile
+        });
+        
+        return updatedMissiles;
+      });
+    }, 50);
+    
+    return () => clearInterval(bugMoveInterval);
+  }, [bug, gameStarted, gameOver, isTransitioning, konamiActive, KONAMI_MISSILE_SIZE, MISSILE_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -924,7 +1016,44 @@ function PagerTron() {
     setKonamiInput([]);
     setThrusterActive(false);
     setCloseEncounters([]);
+    setBug(null);
+    setBugAppeared(false);
   };
+
+  // Mobile device detection (phone, not tablet)
+  const isMobile = /Mobi|Android.*Mobile/.test(navigator.userAgent);
+  if (isMobile) {
+    return (
+      <div style={{
+        backgroundColor: "#F25533",
+        width: "100%",
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        textAlign: "center",
+        color: "white",
+        fontFamily: "'Press Start 2P', cursive",
+        padding: "20px",
+        position: "relative"
+      }}>
+        <GameMusic
+          key="music-mobile"
+          isGameStarted={false}
+          isGameOver={false}
+        />
+        <div style={{
+          fontSize: "48px",
+          color: "rgba(255, 255, 255, 0.2)",
+          lineHeight: "1.2",
+          maxWidth: "90%",
+          margin: "0 auto"
+        }}>
+          Coming soon, check it out on your desktop for now
+        </div>
+      </div>
+    );
+  }
 
   // --- Render High Score Modal ---
   if (showHighScoreModal) {
@@ -1998,6 +2127,28 @@ function PagerTron() {
           </div>
         );
       })}
+
+      {/* Bug enemy - appears once per level */}
+      {bug && gameStarted && !gameOver && !finaleActive && (
+        <div
+          style={{
+            position: "absolute",
+            width: "50px",
+            height: "50px",
+            left: `${bug.x}px`,
+            top: `${bug.y}px`,
+            fontSize: "40px",
+            zIndex: 2,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            filter: "drop-shadow(0 0 5px #00ff00)",
+            animation: "pulse 2s infinite alternate"
+          }}
+        >
+          🐛
+        </div>
+      )}
 
       {/* Missiles - 80s arcade style projectiles - only show during normal gameplay */}
       {gameStarted && !finaleActive && missiles.map((missile, index) => {
