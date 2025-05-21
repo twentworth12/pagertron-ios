@@ -74,7 +74,7 @@ function PagerTron() {
 
   // Regular game state variables
   const [pagers, setPagers] = useState(generateRandomPagers(7));
-  const [gameStarted, setGameStarted] = useState(true); // Start game immediately
+  const [gameStarted, setGameStarted] = useState(false);
   // Enhanced player state with rotation angle and velocity for Asteroids-style controls
   const [player, setPlayer] = useState({
     x: 640,
