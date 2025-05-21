@@ -100,9 +100,11 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
     }
 
     // Add event listeners to log when audio is loaded
-    introMusic.addEventListener('canplaythrough', () => {
-      console.log('Intro music loaded and ready to play');
-    });
+    if (introMusicRef.current.current) {
+      introMusicRef.current.current.addEventListener('canplaythrough', () => {
+        console.log('Intro music loaded and ready to play');
+      });
+    }
 
     // Initialize music playback if not muted
     if (!isMuted && introMusicRef.current.current) {
