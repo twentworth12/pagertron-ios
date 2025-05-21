@@ -133,6 +133,12 @@ function PagerTron() {
   // Track thruster state for visual effects
   const [thrusterActive, setThrusterActive] = useState(false);
 
+  // Keep track of when spacebar is pressed to prevent rapid-fire shooting
+  const [spacebarPressed, setSpacebarPressed] = useState(false);
+  
+  // Track which keys are currently pressed
+  const [keysPressed, setKeysPressed] = useState({});
+
   // Continuous key processing effect - handles held keys
   useEffect(() => {
     if (!gameStarted || gameOver || isTransitioning) return;
@@ -467,12 +473,6 @@ function PagerTron() {
     }, 50);
     return () => clearInterval(gameLoop);
   }, [player, level, gameOver, isTransitioning, konamiActive, gameStarted]);
-
-  // Keep track of when spacebar is pressed to prevent rapid-fire shooting
-  const [spacebarPressed, setSpacebarPressed] = useState(false);
-  
-  // Track which keys are currently pressed
-  const [keysPressed, setKeysPressed] = useState({});
 
   useEffect(() => {
     const handleKeyDown = (event) => {
