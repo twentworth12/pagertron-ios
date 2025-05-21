@@ -579,6 +579,12 @@ function PagerTron() {
       if (!gameStarted) {
         if (event.key === " ") {
           setGameStarted(true);
+          // Clear spacebar from pressed keys to prevent auto-firing on game start
+          setKeysPressed(prev => {
+            const newState = {...prev};
+            delete newState[" "];
+            return newState;
+          });
           // Force a user interaction to help with audio context
           document.body.click();
         }
