@@ -110,6 +110,11 @@ function PagerTron() {
   const [bug, setBug] = useState(null);
   const [bugAppeared, setBugAppeared] = useState(false);
 
+  // Weapon upgrade system - 2x fire rate after 5 kills for 10 seconds
+  const [killCount, setKillCount] = useState(0);
+  const [weaponUpgraded, setWeaponUpgraded] = useState(false);
+  const [upgradeEndTime, setUpgradeEndTime] = useState(0);
+
   // Continuous key processing effect - handles held keys
   useEffect(() => {
     if (!gameStarted || gameOver || isTransitioning) return;
@@ -190,8 +195,9 @@ function PagerTron() {
           ];
         });
         
-        // Allow another shot after a brief delay
-        setTimeout(() => setSpacebarPressed(false), 150);
+        // Allow another shot after a brief delay - faster when upgraded
+        const fireDelay = weaponUpgraded ? 75 : 150; // 2x fire rate when upgraded
+        setTimeout(() => setSpacebarPressed(false), fireDelay);
       }
     }, 50); // Process held keys at 20fps
     
@@ -338,6 +344,7 @@ function PagerTron() {
 
         if (pagersToRemove.length > 0) {
           setScore(prevScore => prevScore + pagersToRemove.length * 10);
+          setKillCount(prevCount => prevCount + pagersToRemove.length);
         }
 
         const playerHit = updatedPagers.some(pager => {
@@ -543,6 +550,7 @@ function PagerTron() {
           if (distance < collisionDistance) {
             // Bug hit! Award points and remove bug
             setScore(prevScore => prevScore + 100);
+            setKillCount(prevCount => prevCount + 1);
             setBug(null);
             
             // Add floating score indicator with special message
@@ -568,6 +576,42 @@ function PagerTron() {
     
     return () => clearInterval(bugMoveInterval);
   }, [bug, gameStarted, gameOver, isTransitioning, konamiActive, KONAMI_MISSILE_SIZE, MISSILE_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT]);
+
+  // Weapon upgrade effect - trigger after 5 kills
+  useEffect(() => {
+    if (killCount > 0 && killCount % 5 === 0 && !weaponUpgraded) {
+      console.log(`Weapon upgrade triggered after ${killCount} kills!`);
+      setWeaponUpgraded(true);
+      setUpgradeEndTime(Date.now() + 10000); // 10 seconds from now
+      
+      // Add floating upgrade message
+      setFloatingScores(prevScores => [...prevScores, {
+        id: `upgrade-${Date.now()}-${Math.random()}`,
+        x: player.x + PLAYER_SIZE / 2,
+        y: player.y - 30,
+        value: 0,
+        text: "WEAPON UPGRADE! 2X FIRE RATE",
+        isUpgrade: true,
+        createdAt: Date.now()
+      }]);
+    }
+  }, [killCount, weaponUpgraded, player.x, player.y, PLAYER_SIZE]);
+
+  // Weapon upgrade timer effect
+  useEffect(() => {
+    if (!weaponUpgraded) return;
+    
+    const upgradeTimer = setInterval(() => {
+      if (Date.now() >= upgradeEndTime) {
+        console.log("Weapon upgrade expired");
+        setWeaponUpgraded(false);
+        setUpgradeEndTime(0);
+        clearInterval(upgradeTimer);
+      }
+    }, 100);
+    
+    return () => clearInterval(upgradeTimer);
+  }, [weaponUpgraded, upgradeEndTime]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -1037,6 +1081,9 @@ function PagerTron() {
     setScreenOffset({ x: 0, y: 0 });
     setPagerExplosions([]);
     setFloatingScores([]);
+    setKillCount(0);
+    setWeaponUpgraded(false);
+    setUpgradeEndTime(0);
   };
 
   // Mobile High Score List Component
@@ -1547,6 +1594,30 @@ function PagerTron() {
         </div>
       )}
 
+      {/* Weapon Upgrade Indicator */}
+      {gameStarted && weaponUpgraded && (
+        <div style={{
+          position: "absolute",
+          top: "50px",
+          right: "10px",
+          fontSize: "16px",
+          fontFamily: "'Press Start 2P', cursive",
+          color: "#ff00ff",
+          textShadow: "0 0 5px #ff00ff, 2px 2px 0px #000",
+          opacity: isTransitioning ? 0 : 1,
+          transition: "opacity 0.3s",
+          zIndex: 1,
+          whiteSpace: "nowrap",
+          backgroundColor: "rgba(0,0,0,0.5)",
+          padding: "5px 10px",
+          borderLeft: "2px solid #ff00ff",
+          borderBottom: "2px solid #00ffff",
+          animation: "pulse 1s infinite alternate"
+        }}>
+          WEAPON UPGRADE: {Math.max(0, Math.ceil((upgradeEndTime - Date.now()) / 1000))}s
+        </div>
+      )}
+
       {/* Instructions */}
       {gameStarted && (
         <div style={{
@@ -1616,17 +1687,19 @@ function PagerTron() {
             pointerEvents: "none",
             animation: "float-up 1s forwards",
             fontFamily: "'Press Start 2P', cursive",
-            fontSize: score.isBug ? "16px" : "20px",
-            color: score.isBug ? "#00ff00" : "#ffff00",
-            textShadow: score.isBug 
-              ? "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 8px #00ff00" 
-              : "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 8px #ff8800",
+            fontSize: score.isUpgrade ? "14px" : score.isBug ? "16px" : "20px",
+            color: score.isUpgrade ? "#ff00ff" : score.isBug ? "#00ff00" : "#ffff00",
+            textShadow: score.isUpgrade 
+              ? "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 8px #ff00ff" 
+              : score.isBug 
+                ? "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 8px #00ff00" 
+                : "2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 0 8px #ff8800",
             whiteSpace: "nowrap",
             fontWeight: "bold",
             transform: "translateX(-50%)"
           }}
         >
-          {score.isBug ? score.text : `+${score.value}`}
+          {score.isUpgrade ? score.text : score.isBug ? score.text : `+${score.value}`}
         </div>
       ))}
       
