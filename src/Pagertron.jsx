@@ -1047,27 +1047,76 @@ function PagerTron() {
         width: "100%",
         height: "100vh",
         display: "flex",
+        flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
         textAlign: "center",
         color: "white",
         fontFamily: "'Press Start 2P', cursive",
         padding: "20px",
-        position: "relative"
+        position: "relative",
+        overflow: "hidden"
       }}>
         <GameMusic
           key="music-mobile"
           isGameStarted={false}
           isGameOver={false}
         />
+        
+        {/* Game Title */}
         <div style={{
-          fontSize: "48px",
-          color: "rgba(255, 255, 255, 0.2)",
+          fontSize: "36px",
+          color: "rgba(255, 255, 255, 0.9)",
           lineHeight: "1.2",
-          maxWidth: "90%",
-          margin: "0 auto"
+          marginBottom: "30px",
+          textShadow: "2px 2px 0px #000"
         }}>
-          Coming soon, check it out on your desktop for now
+          PagerTron
+        </div>
+        
+        {/* Coming Soon Message */}
+        <div style={{
+          fontSize: "20px",
+          color: "rgba(255, 255, 255, 0.8)",
+          lineHeight: "1.4",
+          marginBottom: "40px",
+          textShadow: "1px 1px 0px #000"
+        }}>
+          Coming Soon to Mobile
+        </div>
+        
+        {/* High Score List */}
+        <div style={{
+          width: "100%",
+          maxWidth: "400px",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center"
+        }}>
+          <HighScoreTicker />
+        </div>
+        
+        {/* Footer */}
+        <div style={{
+          fontSize: "12px",
+          color: "rgba(255, 255, 255, 0.6)",
+          marginTop: "20px",
+          textShadow: "1px 1px 0px #000"
+        }}>
+          Play on desktop for the full experience
+        </div>
+        
+        {/* Version display */}
+        <div style={{
+          position: "absolute",
+          bottom: "10px",
+          left: "10px",
+          fontSize: "8px",
+          color: "rgba(255, 255, 255, 0.4)",
+          textShadow: "1px 1px 0px rgba(0, 0, 0, 0.5)"
+        }}>
+          v{VERSION}.{BUILD_NUMBER}
         </div>
       </div>
     );
