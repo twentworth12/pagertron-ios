@@ -7,6 +7,7 @@ import GameMusic from './GameMusic';
 import anthropicLogo from './assets/anthropic-logo.svg';
 import claudeLogo from './assets/claude-logo.svg';
 import { VERSION, BUILD_NUMBER, BUILD_DATE } from './version';
+import { getTopHighScores } from './highScoreService';
 
 function PagerTron() {
   const SCREEN_WIDTH = 1280;
@@ -1038,6 +1039,107 @@ function PagerTron() {
     setFloatingScores([]);
   };
 
+  // Mobile High Score List Component
+  const MobileHighScoreList = () => {
+    const [topScores, setTopScores] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const loadScores = async () => {
+        try {
+          setLoading(true);
+          const scores = await getTopHighScores();
+          setTopScores(scores || []);
+        } catch (error) {
+          console.error('Error loading high scores:', error);
+          setTopScores([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadScores();
+    }, []);
+
+    if (loading) {
+      return (
+        <div style={{
+          textAlign: 'center',
+          color: 'rgba(255, 255, 255, 0.7)',
+          fontSize: '14px'
+        }}>
+          Loading High Scores...
+        </div>
+      );
+    }
+
+    if (topScores.length === 0) {
+      return (
+        <div style={{
+          textAlign: 'center',
+          color: 'rgba(255, 255, 255, 0.7)',
+          fontSize: '14px'
+        }}>
+          No high scores yet!<br />
+          Be the first to play on desktop.
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ width: '100%' }}>
+        <h3 style={{
+          fontSize: '18px',
+          textAlign: 'center',
+          marginBottom: '20px',
+          color: 'rgba(255, 255, 255, 0.9)',
+          textShadow: '1px 1px 0px #000'
+        }}>
+          HIGH SCORES
+        </h3>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontSize: '12px',
+          color: 'white'
+        }}>
+          <thead>
+            <tr>
+              <th style={{ padding: '6px', textAlign: 'left', borderBottom: '2px solid white', fontSize: '10px' }}>#</th>
+              <th style={{ padding: '6px', textAlign: 'left', borderBottom: '2px solid white', fontSize: '10px' }}>NAME</th>
+              <th style={{ padding: '6px', textAlign: 'right', borderBottom: '2px solid white', fontSize: '10px' }}>SCORE</th>
+              <th style={{ padding: '6px', textAlign: 'right', borderBottom: '2px solid white', fontSize: '10px' }}>LVL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {topScores.slice(0, 10).map((entry, index) => (
+              <tr key={index}>
+                <td style={{ padding: '6px', textAlign: 'left', borderBottom: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                  {index + 1}
+                </td>
+                <td style={{ 
+                  padding: '6px', 
+                  textAlign: 'left', 
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+                  fontFamily: "'Press Start 2P', cursive",
+                  fontSize: '10px'
+                }}>
+                  {entry.player_name}
+                </td>
+                <td style={{ padding: '6px', textAlign: 'right', borderBottom: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                  {entry.score}
+                </td>
+                <td style={{ padding: '6px', textAlign: 'right', borderBottom: '1px solid rgba(255, 255, 255, 0.2)' }}>
+                  {entry.level}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
   // Mobile device detection (phone, not tablet)
   const isMobile = /Mobi|Android.*Mobile/.test(navigator.userAgent);
   if (isMobile) {
@@ -1061,6 +1163,7 @@ function PagerTron() {
           key="music-mobile"
           isGameStarted={false}
           isGameOver={false}
+          hideButton={true}
         />
         
         {/* Game Title */}
@@ -1094,7 +1197,7 @@ function PagerTron() {
           flexDirection: "column",
           justifyContent: "center"
         }}>
-          <HighScoreTicker />
+          <MobileHighScoreList />
         </div>
         
         {/* Footer */}

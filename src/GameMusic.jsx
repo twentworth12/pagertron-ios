@@ -26,7 +26,7 @@ const forcePlay = () => {
 const introMusicStaticRef = { current: null };
 const gameplayMusicStaticRef = { current: null };
 
-const GameMusic = ({ isGameStarted, isGameOver }) => {
+const GameMusic = ({ isGameStarted, isGameOver, hideButton = false }) => {
   // Use the static refs to ensure music persistence
   const introMusicRef = useRef(introMusicStaticRef);
   const gameplayMusicRef = useRef(gameplayMusicStaticRef);
@@ -355,10 +355,10 @@ const GameMusic = ({ isGameStarted, isGameOver }) => {
   // Removed event listeners for better performance
 
   // Render mute/unmute button wrapped in a div to ensure clicks work
-  // Only show button in menus (not during active gameplay)
-  const showButton = !isGameStarted || isGameOver;
+  // Only show button in menus (not during active gameplay) and when not explicitly hidden
+  const showButton = (!isGameStarted || isGameOver) && !hideButton;
   
-  // Return null (no button) during active gameplay
+  // Return null (no button) during active gameplay or when hidden
   if (!showButton) {
     return null;
   }
