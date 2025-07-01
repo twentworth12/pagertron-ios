@@ -110,7 +110,7 @@ function PagerTron() {
   const [bug, setBug] = useState(null);
   const [bugAppeared, setBugAppeared] = useState(false);
 
-  // Weapon upgrade system - 2x fire rate after 5 kills for 10 seconds
+  // Weapon upgrade system - 2x fire rate after 10 kills for 10 seconds
   const [killCount, setKillCount] = useState(0);
   const [weaponUpgraded, setWeaponUpgraded] = useState(false);
   const [upgradeEndTime, setUpgradeEndTime] = useState(0);
@@ -577,9 +577,9 @@ function PagerTron() {
     return () => clearInterval(bugMoveInterval);
   }, [bug, gameStarted, gameOver, isTransitioning, konamiActive, KONAMI_MISSILE_SIZE, MISSILE_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT]);
 
-  // Weapon upgrade effect - trigger after 5 kills
+  // Weapon upgrade effect - trigger after 10 kills
   useEffect(() => {
-    if (killCount > 0 && killCount % 5 === 0 && !weaponUpgraded) {
+    if (killCount > 0 && killCount % 10 === 0 && !weaponUpgraded) {
       console.log(`Weapon upgrade triggered after ${killCount} kills!`);
       setWeaponUpgraded(true);
       setUpgradeEndTime(Date.now() + 10000); // 10 seconds from now
