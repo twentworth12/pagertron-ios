@@ -15,6 +15,7 @@ struct GameConstants {
     static let pagerSize: CGFloat = 30
     static let missileSize: CGFloat = 8
     static let konamiMissileSize: CGFloat = 40
+    static let bugSize: CGFloat = 50
     static let collisionRadius: CGFloat = 20
     static let safeDistance: CGFloat = 150
     static let playerSpeed: CGFloat = 200
@@ -204,19 +205,62 @@ struct Explosion {
     }
 }
 
+struct Bug {
+    let id: UUID
+    var position: CGPoint
+    var velocity: CGPoint
+    var timeAlive: Double
+    
+    init(position: CGPoint) {
+        self.id = UUID()
+        self.position = position
+        self.timeAlive = 0
+        
+        // Random diagonal movement
+        let speed: CGFloat = 100
+        let angle = Double.random(in: 0...(2 * .pi))
+        self.velocity = CGPoint(
+            x: cos(angle) * speed,
+            y: sin(angle) * speed
+        )
+    }
+    
+    mutating func update(deltaTime: Double) {
+        position.x += velocity.x * deltaTime
+        position.y += velocity.y * deltaTime
+        timeAlive += deltaTime
+        
+        // Bounce off screen edges
+        if position.x <= 0 || position.x >= GameConstants.screenWidth - GameConstants.bugSize {
+            velocity.x = -velocity.x
+            position.x = max(0, min(GameConstants.screenWidth - GameConstants.bugSize, position.x))
+        }
+        if position.y <= 0 || position.y >= GameConstants.screenHeight - GameConstants.bugSize {
+            velocity.y = -velocity.y
+            position.y = max(0, min(GameConstants.screenHeight - GameConstants.bugSize, position.y))
+        }
+    }
+    
+    var shouldRemove: Bool {
+        return timeAlive > 10.0 // Remove after 10 seconds if not killed
+    }
+}
+
 struct FloatingScore {
     let id: UUID
     let text: String
     var position: CGPoint
     var time: Double
     let duration: Double
+    let isBugScore: Bool
     
-    init(score: Int, position: CGPoint) {
+    init(score: Int, position: CGPoint, isBugScore: Bool = false) {
         self.id = UUID()
-        self.text = "+\(score)"
+        self.text = isBugScore ? "SQUASHED THE BUG +\(score)" : "+\(score)"
         self.position = position
         self.time = 0
         self.duration = 1.5
+        self.isBugScore = isBugScore
     }
     
     mutating func update(deltaTime: Double) {
@@ -238,6 +282,7 @@ enum GameState {
     case menu
     case playing
     case transitioning
+    case interstitial
     case gameOver
     case finale
 }

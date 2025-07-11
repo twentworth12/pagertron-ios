@@ -18,7 +18,7 @@ struct ContentView: View {
                 switch gameVM.gameState {
                 case .menu:
                     MenuView(gameVM: gameVM)
-                case .playing, .transitioning:
+                case .playing, .transitioning, .interstitial:
                     GameView(gameVM: gameVM)
                 case .gameOver:
                     GameOverView(gameVM: gameVM)

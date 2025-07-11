@@ -16,23 +16,38 @@ class GameViewModel: ObservableObject {
     @Published var missiles: [Missile] = []
     @Published var explosions: [Explosion] = []
     @Published var floatingScores: [FloatingScore] = []
+    @Published var bug: Bug? = nil
     
     @Published var level: Int = 1
     @Published var score: Int = 0
     
     @Published var konamiActive = false
     @Published var konamiInput: [String] = []
+    @Published var invertControls: Bool = false
+    
+    // Galaga-style stats tracking
+    @Published var totalMissilesFired: Int = 0
+    @Published var totalPagersKilled: Int = 0
+    @Published var totalBugsKilled: Int = 0
+    
+    var hitRate: Double {
+        if totalMissilesFired == 0 { return 0.0 }
+        return Double(totalPagersKilled + totalBugsKilled) / Double(totalMissilesFired) * 100.0
+    }
     
     private var gameTimer: Timer?
     private var lastUpdateTime: Date = Date()
     private var rotationDirection: Int = 0 // -1 for left, 1 for right, 0 for none
     private var isShooting: Bool = false
     private var lastShotTime: Date = Date()
+    private var bugSpawnTimer: Timer?
+    private var bugHasAppearedThisLevel: Bool = false
     
     private let konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight"]
     
     init() {
         setupGame()
+        loadSettings()
         // Start with intro music
         AudioManager.shared.playIntroMusic()
     }
@@ -54,8 +69,16 @@ class GameViewModel: ObservableObject {
         missiles = []
         explosions = []
         floatingScores = []
+        bug = nil
         konamiActive = false
         konamiInput = []
+        bugHasAppearedThisLevel = false
+        bugSpawnTimer?.invalidate()
+        
+        // Reset stats tracking
+        totalMissilesFired = 0
+        totalPagersKilled = 0
+        totalBugsKilled = 0
     }
     
     func setupLevel() {
@@ -64,6 +87,10 @@ class GameViewModel: ObservableObject {
         missiles = []
         explosions = []
         floatingScores = []
+        bug = nil
+        bugHasAppearedThisLevel = false
+        bugSpawnTimer?.invalidate()
+        scheduleBugSpawn()
         print("Setup level \(level) with \(pagerCount) pagers")
     }
     
@@ -106,6 +133,37 @@ class GameViewModel: ObservableObject {
     
     func stopGameLoop() {
         gameTimer?.invalidate()
+        bugSpawnTimer?.invalidate()
+    }
+    
+    private func scheduleBugSpawn() {
+        guard !bugHasAppearedThisLevel else { return }
+        
+        let spawnDelay = Double.random(in: 3.0...8.0)
+        bugSpawnTimer = Timer.scheduledTimer(withTimeInterval: spawnDelay, repeats: false) { _ in
+            DispatchQueue.main.async {
+                self.spawnBug()
+            }
+        }
+    }
+    
+    private func spawnBug() {
+        guard !bugHasAppearedThisLevel && bug == nil && gameState == .playing else { return }
+        
+        let centerX = GameConstants.screenWidth / 2
+        let centerY = GameConstants.screenHeight / 2
+        
+        var position: CGPoint
+        repeat {
+            position = CGPoint(
+                x: CGFloat.random(in: 0...(GameConstants.screenWidth - GameConstants.bugSize)),
+                y: CGFloat.random(in: 0...(GameConstants.screenHeight - GameConstants.bugSize))
+            )
+        } while distance(from: position, to: CGPoint(x: centerX, y: centerY)) < GameConstants.safeDistance
+        
+        bug = Bug(position: position)
+        bugHasAppearedThisLevel = true
+        print("Bug spawned at level \(level)")
     }
     
     private func updateGame() {
@@ -138,6 +196,7 @@ class GameViewModel: ObservableObject {
                     isKonami: konamiActive
                 )
                 missiles.append(missile)
+                totalMissilesFired += 1
                 lastShotTime = currentTime
             }
         }
@@ -172,12 +231,27 @@ class GameViewModel: ObservableObject {
             return updatedScore.shouldRemove ? nil : updatedScore
         }
         
+        // Update bug
+        if var currentBug = bug {
+            currentBug.update(deltaTime: deltaTime)
+            if currentBug.shouldRemove {
+                bug = nil
+            } else {
+                bug = currentBug
+            }
+        }
+        
         // Check collisions
         checkCollisions()
         
         // Check level completion
         if pagers.isEmpty {
-            nextLevel()
+            // Clear the bug when level is complete
+            bug = nil
+            // Use async to avoid publishing changes during view updates
+            DispatchQueue.main.async {
+                self.nextLevel()
+            }
         }
     }
     
@@ -200,6 +274,39 @@ class GameViewModel: ObservableObject {
                     score += points
                     floatingScores.append(FloatingScore(score: points, position: pager.position))
                     
+                    // Track pager kill
+                    totalPagersKilled += 1
+                    
+                    break
+                }
+            }
+        }
+        
+        // Missile-Bug collisions
+        if let currentBug = bug {
+            for (missileIndex, missile) in missiles.enumerated().reversed() {
+                let bugRadius = GameConstants.bugSize / 2
+                let missileRadius = missile.isKonami ? GameConstants.konamiMissileSize / 2 : GameConstants.missileSize / 2
+                let bugCenter = CGPoint(x: currentBug.position.x + bugRadius, y: currentBug.position.y + bugRadius)
+                
+                if distance(from: missile.position, to: bugCenter) < bugRadius + missileRadius {
+                    // Remove missile
+                    missiles.remove(at: missileIndex)
+                    
+                    // Add explosion
+                    explosions.append(Explosion(position: bugCenter))
+                    
+                    // Award 500 points for bug kill
+                    score += 500
+                    floatingScores.append(FloatingScore(score: 500, position: bugCenter, isBugScore: true))
+                    
+                    // Track bug kill
+                    totalBugsKilled += 1
+                    
+                    // Remove bug
+                    bug = nil
+                    
+                    print("Bug killed! +500 points")
                     break
                 }
             }
@@ -224,8 +331,10 @@ class GameViewModel: ObservableObject {
         // Add explosion at player position
         explosions.append(Explosion(position: player.position, duration: 1.5))
         
-        // Immediately start game over process
-        gameOver()
+        // Use async to avoid publishing changes during view updates
+        DispatchQueue.main.async {
+            self.gameOver()
+        }
     }
     
     private func gameOver() {
@@ -237,11 +346,32 @@ class GameViewModel: ObservableObject {
     
     private func nextLevel() {
         level += 1
-        gameState = .transitioning
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            self.setupLevel()
-            self.gameState = .playing
+        // Always clear all game objects at level end for clean transition
+        missiles = []
+        explosions = []
+        floatingScores = []
+        bug = nil
+        
+        // Show interstitial every 5 levels
+        if level % 5 == 1 && level > 1 {
+            gameState = .interstitial
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
+                self.gameState = .transitioning
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    self.setupLevel()
+                    self.gameState = .playing
+                }
+            }
+        } else {
+            gameState = .transitioning
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.setupLevel()
+                self.gameState = .playing
+            }
         }
     }
     
@@ -273,6 +403,7 @@ class GameViewModel: ObservableObject {
                 isKonami: konamiActive
             )
             missiles.append(missile)
+            totalMissilesFired += 1
             lastShotTime = Date()
         }
     }
@@ -296,6 +427,7 @@ class GameViewModel: ObservableObject {
             isKonami: konamiActive
         )
         missiles.append(missile)
+        totalMissilesFired += 1
     }
     
     func handleKonamiInput(_ input: String) {
@@ -316,7 +448,24 @@ class GameViewModel: ObservableObject {
         }
     }
     
+    private func loadSettings() {
+        invertControls = UserDefaults.standard.bool(forKey: "invert_movement_controls")
+        
+        // Listen for settings changes
+        NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            DispatchQueue.main.async {
+                self.invertControls = UserDefaults.standard.bool(forKey: "invert_movement_controls")
+            }
+        }
+    }
+    
     deinit {
         stopGameLoop()
+        bugSpawnTimer?.invalidate()
+        NotificationCenter.default.removeObserver(self)
     }
 }

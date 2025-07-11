@@ -46,6 +46,11 @@ struct GameView: View {
             drawPager(context: context, pager: pager)
         }
         
+        // Draw bug
+        if let bug = gameVM.bug {
+            drawBug(context: context, bug: bug)
+        }
+        
         // Draw missiles
         for missile in gameVM.missiles {
             drawMissile(context: context, missile: missile)
@@ -176,10 +181,21 @@ struct GameView: View {
         )
     }
     
+    private func drawBug(context: GraphicsContext, bug: Bug) {
+        // Draw bug emoji
+        let bugText = Text("🐛")
+            .font(.system(size: GameConstants.bugSize))
+        
+        context.draw(bugText, at: bug.position)
+    }
+    
     private func drawFloatingScore(context: GraphicsContext, floatingScore: FloatingScore) {
+        let fontSize: CGFloat = floatingScore.isBugScore ? 16 : 20
+        let color = floatingScore.isBugScore ? Color.green : Color(red: 0.949, green: 0.333, blue: 0.2)
+        
         let scoreText = Text(floatingScore.text)
-            .font(.system(size: 20, weight: .bold, design: .serif))
-            .foregroundColor(Color(red: 0.949, green: 0.333, blue: 0.2).opacity(floatingScore.opacity))
+            .font(.system(size: fontSize, weight: .bold, design: .serif))
+            .foregroundColor(color.opacity(floatingScore.opacity))
         
         context.draw(scoreText, at: floatingScore.position)
     }
@@ -285,6 +301,8 @@ struct HUDView: View {
                 Spacer()
                 Spacer()
                 Spacer()
+            } else if gameVM.gameState == .interstitial {
+                OnCallEngineerAwardView(gameVM: gameVM)
             } else {
                 Spacer()
             }
@@ -424,7 +442,13 @@ struct VirtualJoystick: View {
                     
                     // Calculate rotation based on angle
                     if thrustMagnitude > 0.1 {
-                        let angle = atan2(normalizedY, normalizedX) * 180 / .pi
+                        var angle = atan2(normalizedY, normalizedX) * 180 / .pi
+                        
+                        // Invert controls: flip the angle 180 degrees so thrust direction is reversed
+                        if gameVM.invertControls {
+                            angle += 180
+                        }
+                        
                         gameVM.setPlayerRotation(angle - 90) // -90 to match ship orientation
                     }
                 }
@@ -436,5 +460,250 @@ struct VirtualJoystick: View {
                     gameVM.setThrusting(false)
                 }
         )
+    }
+}
+
+struct OnCallEngineerAwardView: View {
+    @ObservedObject var gameVM: GameViewModel
+    @State private var certificateScale: CGFloat = 0.5
+    @State private var titlePulse: CGFloat = 1.0
+    @State private var fireGlow: Bool = false
+    @State private var showStats: Bool = false
+    @State private var confettiOffset: CGFloat = -50
+    
+    var body: some View {
+        ZStack {
+            // Clear background to ensure clean screen
+            Color.white
+                .ignoresSafeArea()
+            
+            // Animated confetti background
+            ForEach(0..<8, id: \.self) { index in
+                Text(["🎉", "🏆", "⭐", "🎊"][index % 4])
+                    .font(.system(size: 30))
+                    .offset(
+                        x: CGFloat(index * 40 - 140),
+                        y: confettiOffset + CGFloat(index * 20)
+                    )
+                    .opacity(0.6)
+                    .animation(
+                        .linear(duration: 8.0)
+                        .repeatForever(autoreverses: false),
+                        value: confettiOffset
+                    )
+            }
+            
+            VStack(spacing: 20) {
+                Spacer()
+                
+                // Award Certificate Background
+                VStack(spacing: 20) {
+                // Header
+                VStack(spacing: 8) {
+                    Text("🏆 CONGRATULATIONS! 🏆")
+                        .font(.system(size: 20, weight: .bold, design: .serif))
+                        .foregroundColor(Color.black)
+                        .tracking(2)
+                    
+                    Text("PageDestroyer Technologies")
+                        .font(.system(size: 14, weight: .medium, design: .serif))
+                        .foregroundColor(Color.black)
+                        .opacity(0.7)
+                }
+                
+                // Award Title
+                Text("ON-CALL ENGINEER")
+                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .foregroundColor(Color.black)
+                    .tracking(2)
+                    .scaleEffect(titlePulse)
+                
+                Text("OF THE MONTH")
+                    .font(.system(size: 22, weight: .bold, design: .serif))
+                    .foregroundColor(Color.black)
+                    .tracking(2)
+                    .scaleEffect(titlePulse)
+                
+                // Hero Fire Character with animated glow
+                Text("🔥")
+                    .font(.system(size: 60))
+                    .scaleEffect(1.1)
+                    .shadow(color: fireGlow ? .yellow : .orange, radius: fireGlow ? 15 : 8)
+                    .animation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true), value: fireGlow)
+                
+                // Achievement Text - Shortened
+                VStack(spacing: 8) {
+                    Text("Excellence in")
+                        .font(.system(size: 14, weight: .medium, design: .serif))
+                        .foregroundColor(Color.black)
+                        .opacity(0.7)
+                    
+                    Text("INCIDENT RESPONSE")
+                        .font(.system(size: 18, weight: .bold, design: .serif))
+                        .foregroundColor(Color.black)
+                        .tracking(2)
+                }
+                
+                // Galaga-style stats with delayed appearance
+                if showStats {
+                    VStack(spacing: 12) {
+                        Text("PERFORMANCE REPORT")
+                            .font(.system(size: 18, weight: .bold, design: .serif))
+                            .foregroundColor(Color.black)
+                            .tracking(2)
+                        
+                        VStack(spacing: 10) {
+                            HStack {
+                                Text("SHOTS FIRED")
+                                    .font(.system(size: 16, weight: .medium, design: .serif))
+                                    .foregroundColor(Color.black)
+                                Spacer()
+                                Text("\(gameVM.totalMissilesFired)")
+                                    .font(.system(size: 16, weight: .bold, design: .serif))
+                                    .foregroundColor(Color.black)
+                            }
+                            .scaleEffect(showStats ? 1.0 : 0.5)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0).delay(0.2), value: showStats)
+                            
+                            HStack {
+                                Text("PAGERS KILLED")
+                                    .font(.system(size: 16, weight: .medium, design: .serif))
+                                    .foregroundColor(Color.black)
+                                Spacer()
+                                Text("\(gameVM.totalPagersKilled)")
+                                    .font(.system(size: 16, weight: .bold, design: .serif))
+                                    .foregroundColor(Color.black)
+                            }
+                            .scaleEffect(showStats ? 1.0 : 0.5)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0).delay(0.4), value: showStats)
+                            
+                            HStack {
+                                Text("BUGS SQUASHED")
+                                    .font(.system(size: 16, weight: .medium, design: .serif))
+                                    .foregroundColor(Color.black)
+                                Spacer()
+                                Text("\(gameVM.totalBugsKilled)")
+                                    .font(.system(size: 16, weight: .bold, design: .serif))
+                                    .foregroundColor(Color.black)
+                            }
+                            .scaleEffect(showStats ? 1.0 : 0.5)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0).delay(0.6), value: showStats)
+                            
+                            // Hit rate with special highlighting
+                            VStack(spacing: 6) {
+                                Text("HIT RATE")
+                                    .font(.system(size: 18, weight: .bold, design: .serif))
+                                    .foregroundColor(Color.black)
+                                    .tracking(2)
+                                
+                                Text("\(String(format: "%.1f", gameVM.hitRate))%")
+                                    .font(.system(size: 28, weight: .bold, design: .serif))
+                                    .foregroundColor(hitRateColor(gameVM.hitRate))
+                                    .tracking(1)
+                            }
+                            .scaleEffect(showStats ? 1.0 : 0.5)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0).delay(0.8), value: showStats)
+                            .padding(.top, 10)
+                        }
+                        .padding(.horizontal, 25)
+                        .padding(.vertical, 20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white.opacity(0.9))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color(red: 0.949, green: 0.333, blue: 0.2), lineWidth: 2)
+                                )
+                        )
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+                
+                // Signature
+                HStack {
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("_________________")
+                            .font(.system(size: 12, weight: .medium, design: .serif))
+                            .foregroundColor(Color.black)
+                            .opacity(0.6)
+                        
+                        Text("Chief Technology Officer")
+                            .font(.system(size: 12, weight: .medium, design: .serif))
+                            .foregroundColor(Color.black)
+                            .opacity(0.6)
+                    }
+                    .padding(.trailing, 20)
+                }
+                }
+                .padding(30)
+                .background(
+                    ZStack {
+                        // Certificate background
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.white.opacity(0.95))
+                        
+                        // Decorative border
+                        RoundedRectangle(cornerRadius: 15)
+                            .stroke(Color(red: 0.949, green: 0.333, blue: 0.2), lineWidth: 3)
+                        
+                        // Inner decorative border
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(red: 0.949, green: 0.333, blue: 0.2).opacity(0.3), lineWidth: 1)
+                            .padding(8)
+                    }
+                )
+                .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+                .scaleEffect(certificateScale)
+                .animation(.spring(response: 0.8, dampingFraction: 0.6, blendDuration: 0), value: certificateScale)
+                
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+        }
+        .onAppear {
+            // Trigger animations
+            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
+                titlePulse = 1.1
+            }
+            
+            fireGlow = true
+            confettiOffset = UIScreen.main.bounds.height + 100
+            
+            // Animate certificate entrance
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.6, blendDuration: 0)) {
+                certificateScale = 1.0
+            }
+            
+            // Show stats with delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    showStats = true
+                }
+            }
+        }
+    }
+    
+    private func hitRateColor(_ rate: Double) -> Color {
+        switch rate {
+        case 80...:
+            return .green
+        case 60..<80:
+            return .orange
+        case 40..<60:
+            return Color(red: 0.949, green: 0.333, blue: 0.2)
+        default:
+            return .red
+        }
+    }
+    
+    private func calculatePagersDestroyed() -> Int {
+        // Estimate based on levels completed
+        // Each level has 5 + level pagers, so calculate cumulative
+        var total = 0
+        for level in 1..<gameVM.level {
+            total += 5 + level
+        }
+        return total
     }
 }
